@@ -13,6 +13,8 @@ board = [
 #legal_dir={["p","P"]:(1,0),["r","R"]:[ (1,0),(-1,0),(0,1),(0,-1)],["b","B"]:[(1,1),(1,-1),(-1,1),(-1,-1)],["n","N"]:(()) }
 
 class move:
+ def __init__(self):
+  pass
  def parse_move(square):
   file='abcdefgh'
   col_letter=square[0]
@@ -20,12 +22,12 @@ class move:
   col=file.index(col_letter)
   return row_no,col
  def unparse_move(pos_r,pos_c):
-  file=['a','b','c','d','e','f','g','h']
-  
+ # file=['a','b','c','d','e','f','g','h']
+  file='abcdefgh'
+
   col_letter=file[pos_c]
-  col_letter
-  row_no_str=(str(pos_r+8))
-  square=col_letter+(row_no_str)
+  row_no_str=(-pos_r+8)
+  square=col_letter+str(row_no_str)
   return square
  def is_pawn(square):
   r,c=move.parse_move(square)
@@ -48,18 +50,18 @@ class move:
  def is_empty(square):
   r,c=move.parse_move(square)
   return board[r][c]=="."
- """ def is_empty(r,c):
-    square=board[r][c]
-    return is_empty(square)"""
+ def is_empty2(r,c):
+    square=move.unparse_move(r,c)
+    return move.is_empty(square)
  def is_white(square):
   r,c=move.parse_move(square)
   if(move.is_empty(square)):
-   return f'{square} is empty'
+   return False
   return board[r][c].isupper()
  def is_black(square):
   r,c=move.parse_move(square)
   if(move.is_empty(square)):
-   return f'{square} is empty'
+   return False
   return board[r][c].islower()
  # need to define a generic function that takes the square and define the type of square if the movement is legal
  def is_legal(pos_square):
@@ -74,36 +76,61 @@ class move:
   if(not move.board[i][pos_c]
 """
  def is_friend(pos_r,pos_c,target_r,target_c):
-  if(move.is_black(move.unparse_move(pos_r,pos_c)) and move.is_black(move.unparse_move(target_c,target_r))):
+  if(move.is_black(move.unparse_move(pos_r,pos_c)) and move.is_black(move.unparse_move(target_r,target_c))):
    return True
-  elif(move.is_white(move.unparse_move(pos_r,pos_c)) and move.is_white(move.unparse_move(target_c,target_r))):
+  elif(move.is_white(move.unparse_move(pos_r,pos_c)) and move.is_white(move.unparse_move(target_r,target_c))):
       return True
   else:
    return False
  def rook_legal(pos_r,pos_c,target_r,target_c):
+  color_mapping=move.is_black(move.unparse_move(pos_r,pos_c))
+
   if (target_c==pos_c and target_r>pos_r):
    for i in range (pos_r+1,target_r+1,1):
-    if( move.is_empty(i,target_c)and not move.is_friend(i-1,pos_c,i,pos_c)):
-     board[i][pos_c]= "R"if(move.is_black(move.unparse_move(pos_r,pos_c,target_r,target_c))) else "r"
+    if( move.is_empty2(i,target_c)):
+     board[i][pos_c]= "r"if(color_mapping) else "R"
      board[i-1][pos_c]='.'
+    elif (not move.is_friend(i-1,pos_c,i,pos_c)):
+     board[i][pos_c]= "r"if(color_mapping) else "R"
+     board[i-1][pos_c]='.'
+     break
+    else:
+     break
   elif(target_c==pos_c and target_r<pos_r):
-   for i in range(pos_r-1, target_r, -1):
-    if( move.is_empty(i,target_c)and (not move.is_friend(i+1,pos_c,i,pos_c))):
-     board[i][pos_c]= "R"if(move.is_black(move.unparse_move(pos_r,pos_c,target_r,target_c))) else "r"
-    board[i+1][pos_c]='.'
+   for i in range(pos_r-1, target_r-1, -1):
+    if( move.is_empty2(i,target_c) ):
+     board[i][pos_c]= "r"if(color_mapping) else "R"
+     board[i+1][pos_c]='.'
+    elif (not move.is_friend(i+1,pos_c,i,pos_c)):
+        board[i][pos_c]= "r"if(color_mapping) else "R"
+        board[i+1][pos_c]='.'
+        break
+    else:
+     break
   elif(target_r==pos_r and target_c>pos_c):
     for i in range (pos_c+1,target_c+1,1):
-       if( move.is_empty(target_r,i) and (not move.is_friend(pos_r,i-1,pos_r,i))):
-        board[pos_r][i]= "R"if(move.is_black(move.unparse_move(pos_r,pos_c,target_r,target_c))) else "r"
+       if( move.is_empty2(target_r,i)):
+        board[pos_r][i]= "r"if(color_mapping) else "R"
         board[pos_r][i-1]='.'
+       elif (not move.is_friend(pos_r,i-1,pos_r,i)):
+          board[pos_r][i]= "r"if(color_mapping) else "R"
+          board[pos_r][i-1]='.'
+          break
+       else:
+         break
   elif(target_r==pos_r and target_c<pos_c):
-      for i in range (pos_c-1,target_c,-1):
-       if( move.is_empty(target_r,i) and (not move.is_friend(pos_r,i+1,pos_r,i))):
-        board[pos_r][i]= "R"if(move.is_black(move.unparse_move(pos_r,pos_c,target_r,target_c))) else "r"
-        board[pos_r][i+1]='.'
+      for i in range (pos_c-1,target_c-1,-1):
+       if( move.is_empty2(target_r,i) ):
+         board[pos_r][i]= "r"if(color_mapping) else "R"
+         board[pos_r][i+1]='.' 
+       elif (not move.is_friend(pos_r,i+1,pos_r,i)):
+        board[pos_r][i]= "r"if(color_mapping) else "R"
+        board[pos_r][i+1]='.' 
+        break
+       else:
+        break
   else:
-   print('illegal move for rook')   
-
+   print('wrong nigga')
  def move_piece(pos_sq,target_sq):
   
  # if(move.is_pawn(pos_sq) ):
@@ -123,9 +150,10 @@ def print_board(board):
 
 # testing here
 #print(move.is_white('a1'))
-move.move_piece('a1', 'a2')
-print(move.is_empty('a2'))
-print(move.is_rook('a2'))
-x=move.unparse_move(0,0)
-print(type(x))
+c=move.unparse_move(5,5)
+print(move.is_black(move.unparse_move(5,5)))
+print(move.is_friend(7,0,6,0))
+
+print(move.is_empty2(6,0))
+move.rook_legal(0,0,4,0)
 print_board(board)
