@@ -6,7 +6,7 @@ board = [
     ['.','.','.','.','.','.','.','.'],
     ['.','.','.','.','.','.','.','.'],
     ['.','.','.','.','.','.','.','.'],
-    ['P','P','P','P','P','P','P','P'],
+    ['P','.','P','P','P','P','P','P'],
     ['R','N','B','Q','K','B','N','R']
 ]
 
@@ -130,8 +130,81 @@ class move:
        else:
         break
   else:
-   print('wrong nigga')
- def move_piece(pos_sq,target_sq):
+   print('wrong move for rook')
+# 2 up (row-2)1 right(col+1) ,2 up(row-2) 1 left(col-1),2 down(row+2) 1right(col+1),2 down 1 left(col-1),2right(col+2) 1 down(row+1),2right(col+2) 1 up(row-1),2left(col-2) 1 down(row+1),2left (col-2) 1 up (row-1)
+ def knight_legal(pos_r,pos_c,target_r,target_c): 
+  #legal_movements=[istopright,istopleft,isdownright,isdownleft,isrightdown,isrightup,isleftdown,isleftup]
+   if( move.is_empty2(target_r,target_c) or not move.is_friend(pos_r,pos_c,target_r,target_c)):
+    if(target_r,target_c)==(pos_r-2,pos_c+1):
+       board[target_r][target_c]=board[pos_r][pos_c] 
+       board[pos_r][pos_c] ='.'
+    elif (target_r,target_c)==(pos_r,pos_c):
+       board[target_r][target_c]=board[pos_r][pos_c]
+       board[pos_r][pos_c]='.'
+    elif (target_r,target_c)==(pos_r+2,pos_c+1):
+       board[target_r][target_c]=board[pos_r][pos_c]
+       board[pos_r][pos_c]='.'
+    elif (target_r,target_c)==(pos_r+2,pos_c-1):
+       board[target_r][target_c]=board[pos_r][pos_c]
+       board[pos_r][pos_c]='.'
+    elif (target_r,target_c)==(pos_r,pos_c):
+       board[target_r][target_c]=board[pos_r][pos_c]
+       board[pos_r][pos_c]='.'
+    elif (target_r,target_c)==(pos_r-1,pos_c+2):
+       board[target_r][target_c]=board[pos_r][pos_c]
+       board[pos_r][pos_c]='.'
+    elif (target_r,target_c)==(pos_r+1,pos_c-2):
+       board[target_r][target_c]=board[pos_r][pos_c]
+       board[pos_r][pos_c]='.'
+    elif (target_r,target_c)==(pos_r-1,pos_c-2):
+       board[target_r][target_c]=board[pos_r][pos_c]
+       board[pos_r][pos_c]='.'
+    else:
+        print('illegal move for knight')
+   else:
+    print('cant attack friend!') 
+
+
+   
+ def bishop_legal(pos_r,pos_c,target_r,target_c)  :
+  bish_silding_dirs=[(1,1),(1,-1),(-1,1),(-1,-1)]  
+  (dx,dy)=(0,0)
+  emptyr,emptyc=pos_r,pos_c
+  #check diagonal
+  if(abs(pos_r-target_r)==abs(target_c-pos_c)):
+   if(target_c<pos_c and target_r<pos_r):
+    dy,dx=bish_silding_dirs[3]
+   elif(target_c<pos_c  and target_r>pos_r):
+    dy,dx=bish_silding_dirs[2]
+   elif(target_c>pos_c  and target_r>pos_r):
+    dy,dx=bish_silding_dirs[0]
+   elif(target_c>pos_c  and target_r>pos_r):
+      dy,dx=bish_silding_dirs[1]
+   else:
+    print("wrong move for bishop ") 
+
+    #must find number of tiles in digonal from a point to point =col-row
+  for i in range(abs(pos_r-target_c)+1):
+    newpos_r=pos_r+dx
+    newpos_c=pos_c+dy
+    if(move.is_empty2(newpos_r,newpos_c,)):  
+        pos_r=newpos_r
+        pos_c=newpos_c
+    if(not move.is_friend(pos_r,pos_c,newpos_r,newpos_c)):
+      pos_r=newpos_r
+      pos_c=newpos_c
+      break
+    else:
+      print('cant attack friend!')
+      return
+  board[pos_r][pos_c]="b"if(move.is_black(move.unparse_move(pos_r,pos_c))) else "B"   
+  board[emptyr][emptyc]='.'
+
+    
+  
+
+
+def move_piece(pos_sq,target_sq):
   
  # if(move.is_pawn(pos_sq) ):
   # pos_r,pos_c=move.parse_move(pos_sq)
@@ -155,5 +228,7 @@ print(move.is_black(move.unparse_move(5,5)))
 print(move.is_friend(7,0,6,0))
 
 print(move.is_empty2(6,0))
-move.rook_legal(0,0,4,0)
+move.bishop_legal(7,2,6,1)
+move.bishop_legal(6,1,6,0)
+
 print_board(board)
