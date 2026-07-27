@@ -6,7 +6,7 @@ board = [
     ['.','.','.','.','.','.','.','.'],
     ['.','.','.','.','.','.','.','.'],
     ['.','.','.','.','.','.','.','.'],
-    ['P','.','P','P','P','P','P','P'],
+    ['P','P','P','P','P','P','P','P'],
     ['R','N','B','Q','K','B','N','R']
 ]
 
@@ -184,7 +184,7 @@ class move:
     print("wrong move for bishop ") 
 
     #must find number of tiles in digonal from a point to point =col-row
-  for i in range(abs(pos_r-target_c)+1):
+  for i in range(abs(pos_c-target_c)+1):
     newpos_r=pos_r+dx
     newpos_c=pos_c+dy
     if(move.is_empty2(newpos_r,newpos_c,)):  
@@ -201,8 +201,42 @@ class move:
   board[emptyr][emptyc]='.'
 
     
-  
-
+def queen_legal(pos_r,pos_c,target_r,target_c):
+ queen_sliding_dirs=[(1,1),(1,-1),(-1,1),(-1,-1),(1,0)(-1,0),(0,1),(0,-1)] 
+ if(abs(pos_r-target_r)==abs(target_c-pos_c)):
+    if(target_c<pos_c and target_r<pos_r):
+     dy,dx=queen_sliding_dirs[3]
+    elif(target_c<pos_c  and target_r>pos_r):
+     dy,dx=queen_sliding_dirs[2]
+    elif(target_c>pos_c  and target_r>pos_r):
+     dy,dx=queen_sliding_dirs[0]
+    elif(target_c>pos_c  and target_r>pos_r):
+       dy,dx=queen_sliding_dirs[1]
+    else:
+      return
+    for i in range(abs(pos_r-target_c)+1):
+        newpos_r=pos_r+dx
+        newpos_c=pos_c+dy
+        if(move.is_empty2(newpos_r,newpos_c,)):  
+            pos_r=newpos_r
+            pos_c=newpos_c
+        if(not move.is_friend(pos_r,pos_c,newpos_r,newpos_c)):
+          pos_r=newpos_r
+          pos_c=newpos_c
+          break
+        else:
+          print('cant attack friend!')
+          return
+ elif (target_c == pos_c and target_r > pos_r):
+  dy,dx=queen_sliding_dirs[-4]
+ elif (target_c == pos_c and target_r < pos_r):
+   dy,dx=queen_sliding_dirs[-3]
+ elif (target_r == pos_r and target_c > pos_c):
+   dy,dx=queen_sliding_dirs[-2]
+ elif (target_r == pos_r and target_c < pos_c):
+   dy,dx=queen_sliding_dirs[-1]
+ else:
+   return
 
 def move_piece(pos_sq,target_sq):
   
@@ -229,6 +263,6 @@ print(move.is_friend(7,0,6,0))
 
 print(move.is_empty2(6,0))
 move.bishop_legal(7,2,6,1)
-move.bishop_legal(6,1,6,0)
+
 
 print_board(board)
