@@ -201,9 +201,11 @@ class move:
   board[emptyr][emptyc]='.'
 
     
-def queen_legal(pos_r,pos_c,target_r,target_c):
- queen_sliding_dirs=[(1,1),(1,-1),(-1,1),(-1,-1),(1,0)(-1,0),(0,1),(0,-1)] 
- if(abs(pos_r-target_r)==abs(target_c-pos_c)):
+ def queen_legal(pos_r,pos_c,target_r,target_c):
+  queen_sliding_dirs=[(1,1),(1,-1),(-1,1),(-1,-1),(1,0)(-1,0),(0,1),(0,-1)] 
+  (dx,dy)=(0,0)
+
+  if(abs(pos_r-target_r)==abs(target_c-pos_c)):
     if(target_c<pos_c and target_r<pos_r):
      dy,dx=queen_sliding_dirs[3]
     elif(target_c<pos_c  and target_r>pos_r):
@@ -214,7 +216,7 @@ def queen_legal(pos_r,pos_c,target_r,target_c):
        dy,dx=queen_sliding_dirs[1]
     else:
       return
-    for i in range(abs(pos_r-target_c)+1):
+    for i in range(abs(pos_c-target_c)+1):
         newpos_r=pos_r+dx
         newpos_c=pos_c+dy
         if(move.is_empty2(newpos_r,newpos_c,)):  
@@ -227,26 +229,120 @@ def queen_legal(pos_r,pos_c,target_r,target_c):
         else:
           print('cant attack friend!')
           return
- elif (target_c == pos_c and target_r > pos_r):
-  dy,dx=queen_sliding_dirs[-4]
- elif (target_c == pos_c and target_r < pos_r):
-   dy,dx=queen_sliding_dirs[-3]
- elif (target_r == pos_r and target_c > pos_c):
-   dy,dx=queen_sliding_dirs[-2]
- elif (target_r == pos_r and target_c < pos_c):
-   dy,dx=queen_sliding_dirs[-1]
- else:
-   return
+      
+  elif (target_c == pos_c and target_r > pos_r):
+     dy,dx=queen_sliding_dirs[-4]
+  elif (target_c == pos_c and target_r < pos_r):
+    dy,dx=queen_sliding_dirs[-3]
+  elif (target_r == pos_r and target_c > pos_c):
+    dy,dx=queen_sliding_dirs[-2]    
+  elif (target_r == pos_r and target_c < pos_c):
+    dy,dx=queen_sliding_dirs[-1]
+  else:
+     return
 
-def move_piece(pos_sq,target_sq):
+  for_limit=0
+
+
+  if(target_c == pos_c):
+    for_limit=abs(target_c-pos_c)
+  else:
+    for_limit=abs(target_r-pos_r)
+  for i in range(for_limit):
+    newpos_r=pos_r+dx
+    newpos_c=pos_c+dy
+    if(move.is_empty2(newpos_r,newpos_c,)):  
+     pos_r=newpos_r
+     pos_c=newpos_c
+    if(not move.is_friend(pos_r,pos_c,newpos_r,newpos_c)):
+     pos_r=newpos_r
+     pos_c=newpos_c
+     break
+    else:
+     print('cant attack friend!')
+     return    
+
+ def king_legal(pos_r,pos_c,target_r,target_c):
+    king_dirs=[(1,1),(1,-1),(-1,1),(-1,-1),(1,0)(-1,0),(0,1),(0,-1)] 
+    (dx,dy)=(0,0)
+    if(abs(pos_r-target_r)==abs(target_c-pos_c)):
+      if(target_c<pos_c and target_r<pos_r):
+       dy,dx=king_dirs[3]
+      elif(target_c<pos_c  and target_r>pos_r):
+       dy,dx=king_dirs[2]
+      elif(target_c>pos_c  and target_r>pos_r):
+       dy,dx=king_dirs[0]
+      elif(target_c>pos_c  and target_r>pos_r):
+         dy,dx=king_dirs[1]
+      else:
+        return
+      if (target_c == pos_c and target_r > pos_r):
+       dy,dx=king_dirs[-4]
+      elif (target_c == pos_c and target_r < pos_r):
+       dy,dx=king_dirs[-3]
+      elif (target_r == pos_r and target_c > pos_c):
+       dy,dx=king_dirs[-2]
+      elif (target_r == pos_r and target_c < pos_c):
+       dy,dx=king_dirs[-1]
+      else:
+       return
+      newpos_r=pos_r+dx
+      newpos_c=pos_c+dy
+    if(move.is_empty2(newpos_r,newpos_c) or not move.is_friend(newpos_r,newpos_c,pos_r,pos_c)):  
+       pos_r=newpos_r
+       pos_c=newpos_c 
+       board[newpos_r][newpos_c]="q"if(move.is_black(move.unparse_move(newpos_r,newpos_c))) else "Q"   
+    else:
+       print('cant attack friend!')
+       return 
+ def pawn_legal(pos_r,pos_c,target_r,target_c):
+  newpos_r=0
+  newpos_c=0
+  pawn_dirs=[(1,0),(1,1),(1,-1),(2,0)]
+  pawn_dirs_negated=[(-dx, -dy) for dx, dy in pawn_dirs]
+  (dx,dy)=(0,0)
+  is_black=move.is_black(move.unparse_move(pos_r,pos_c))
+  is_white=not is_black
+  if(pos_c==target_c and pos_r==target_r+1 and move.is_empty2(target_r,target_c) and is_white):
+    dx,dy=pawn_dirs[0]
+  elif(pos_c==target_c and pos_r==target_r-1 and move.is_empty2(target_r,target_c) and is_black):
+    dx,dy=pawn_dirs_negated[0]
+  elif(pos_c==target_c and pos_r==target_r+2 and move.is_empty2(target_r,target_c) and  move.is_empty2(pos_r+1,pos_c) and pos_r==1 and is_white):
+     dx,dy=pawn_dirs[-1]
+  elif(pos_c==target_c and pos_r==target_r-2 and move.is_empty2(target_r,target_c) and  move.is_empty2(pos_r-1,pos_c) and pos_r==6 and is_black):
+     dx,dy=pawn_dirs_negated[-1]
+  elif(pos_c==target_c-1 and pos_r==target_r+1 and not move.is_empty2(target_r,target_c) and not move.is_friend(pos_r,pos_c,target_r,target_c) and is_white):
+        dx,dy=pawn_dirs[1]
+
+  elif(pos_c==target_c+1 and pos_r==target_r+1 and not move.is_empty2(target_r,target_c) and not move.is_friend(pos_r,pos_c,target_r,target_c) and is_black):
+        dx,dy=pawn_dirs_negated[1] 
+  elif(pos_c==target_c-1 and pos_r==target_r-1 and not move.is_empty2(target_r,target_c) and not move.is_friend(pos_r,pos_c,target_r,target_c) and is_white):
+          dx,dy=pawn_dirs[2]
   
- # if(move.is_pawn(pos_sq) ):
-  # pos_r,pos_c=move.parse_move(pos_sq)
- #  target_r,target_c=move.parse_move(target_sq)
- #  board[target_r][target_c]=board[pos_r][pos_c]
-  # board[pos_r][pos_c]="."
-  pos_r,pos_c=move.parse_move(pos_sq)
-  target_r,target_c=move.parse_move(target_sq)  
+  elif(pos_c==target_c+1 and pos_r==target_r-1 and not move.is_empty2(target_r,target_c) and not move.is_friend(pos_r,pos_c,target_r,target_c) and is_black):
+          dx,dy=pawn_dirs_negated[2]       
+  else:
+     print("cant go there")
+     return
+  newpos_r=pos_r+dx
+  newpos_c=pos_c+dy
+  
+  board[newpos_r][newpos_c]= "p"if(move.is_black(move.unparse_move(pos_r,pos_c))) else"P"
+  board[pos_r][pos_c]='.'
+    
+     
+    
+def is_checked(k_r,k_c,k_color):
+  isdiagonal=False
+  for r in range (8):
+   for c in range(8):
+    if((r==k_r or c==k_c or abs(k_c-c)==abs(k_r-r)) and not move.is_friend(k_r,k_c,r,c)):
+      return True       
+def move_piece(board,pos_sq,target_sq):
+  pos=move.parse_move(pos_sq)
+  target=move.parse_move(target_sq)
+  if(move.is_pawn(pos_sq) ):
+   move.pawn_legal(pos,target)
   if(move.is_rook(pos_sq)):
    return move.rook_legal(pos_r,pos_c,target_r,target_c)
       
