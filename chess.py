@@ -273,7 +273,7 @@ class move:
   return True
     
  def queen_legal(pos_r,pos_c,target_r,target_c):
-  queen_sliding_dirs=[(1,1),(1,-1),(-1,1),(-1,-1),(1,0)(-1,0),(0,1),(0,-1)] 
+  queen_sliding_dirs=[(1,1),(1,-1),(-1,1),(-1,-1),(1,0),(-1,0),(0,1),(0,-1)] 
   (dx,dy)=(0,0)
 
   if(abs(pos_r-target_r)==abs(target_c-pos_c)):
@@ -315,7 +315,7 @@ class move:
   for_limit=0
 
 
-  if(target_c == pos_c):
+  if(target_r == pos_r):
     for_limit=abs(target_c-pos_c)
   else:
     for_limit=abs(target_r-pos_r)
@@ -448,7 +448,7 @@ class move:
        
  # we need to identify 1.whether a king is under attack 2. if the king can be saved through a friends move(capture the threat , or block the threat) 3. king has no way to move
  # to make friend block we have to identify which r,c is the checker on relative to kings place
- def is_bishop_attack(piece):
+ """ def is_bishop_attack(piece):
        if(piece=='bishop'):
         return True
        return False
@@ -463,9 +463,8 @@ class move:
  def is_queen_attack(piece):
    if(piece=='queen'):
     return True
-   return False
- def rook_block(e_r,e_c)
-   # pieces that can be blocked:rook,bishop,queen
+   return False"""
+ 
 
  def bishop_blocks(k_r,k_c):
     block_sqrs=[]
@@ -570,8 +569,23 @@ class move:
                b_c+=dy
                block_sqrs.append((b_r,b_c))
              return block_sqrs
+ def can_king_escape(k_r,k_c):
+  king_color='white' if move.is_white(move.unparse_move(k_r,k_c)) else 'black'
+  rook_blocks_coor=move.rook_blocks(k_r,k_c)
+  queen_blocks_coor=move.queen_blocks(k_r,k_c)
+  bishop_blocks_coor=move.bishop_blocks(k_r,k_c)
+  block_sqrs=[*queen_blocks_coor,*bishop_blocks_coor,*rook_blocks_coor]
+  unacceptable=[*block_sqrs,(k_r,k_c)]
+  friendly_occupied = [sq for positions in move.positions[king_color].values() for sq in positions]
+  for r in range(8):
+    for c in range(8): 
+       if(not (r,c)  in friendly_occupied and (not (r,c) in unacceptable) and move.king_legal(k_r,k_c,r,c) ):
+         return True
+  return False     
  def can_friend_block(k_r,k_c):
   king_color='white' if move.is_white(move.unparse_move(k_r,k_c)) else 'black'
+  if(len(move.king_checkers[king_color]>1)):
+    return False
   rook_blocks_coor=move.rook_blocks(k_r,k_c)
   queen_blocks_coor=move.queen_blocks(k_r,k_c)
   bishop_blocks_coor=move.bishop_blocks(k_r,k_c)
@@ -585,24 +599,53 @@ class move:
              
              return True 
           else:
-            for r,c in position:
+            for fr,fc in position:
               if(piece=='pawns'):
-                if(move.pawn_legal(r,c,k_r,k_c)):
+                if(move.pawn_legal(fr,fc,r,c)):
                   return True
               elif(piece=='rooks'):
-                if(move.rook_legal(r,c,k_r,k_c)):
+                if(move.rook_legal(fr,fc,r,c)):
                   return True
 
               elif(piece=='knight'):
-                if(move.knight_legal(r,c,k_r,k_c)):
+                if(move.knight_legal(fr,fc,r,c)):
                       return True
 
-              else:
-                if(move.bishop_legal(r,c,k_r,k_c)):
+              elif(piece=='bishop'):
+                if(move.bishop_legal(fr,fc,r,c)):
                         return True
-
+  return False
  def friend_attack(k_r,k_c):
-   king_color='white' if move.is_white(move.unparse_move(k_r,k_c)) else 'black'
+  king_color='white' if move.is_white(move.unparse_move(k_r,k_c)) else 'black'
+  
+  for piece,position in move.positions[king_color]:
+    for e_piece,r,c in move.king_checkers[king_color]:
+     if piece=='queen' or piece=='king':
+      fr,fc=position
+      if(piece=='queen'):
+       if(move.queen_legal(fr,fc,r,c)): 
+        return True
+      if(piece=='king'):
+       if(move.king_legal(fr,fc,r,c)):   
+        return True 
+     else:
+      for fr,fc in position:
+       if(piece=='pawns'):
+        if(move.pawn_legal(fr,fc,r,c)):
+         return True
+       elif(piece=='rooks'):
+        if(move.rook_legal(fr,fc,r,c)):
+           return True
+     
+       elif(piece=='knight'):
+        if(move.knight_legal(fr,fc,r,c)):
+          return True
+     
+       elif(piece=='bishop'):
+        if(move.bishop_legal(fr,fc,r,c)):
+         return True
+  return False
+  
    
    
  def update_place(old_r,old_c,r,c):
@@ -620,25 +663,14 @@ class move:
    
    else:
     move.positions[color][piece]=(r,c)
- def friends_place(r,c):
-   
- def generate_king_possible_moves(k_r,k_c):
-   legal_move_count=0
-   for r in range(8):
-    for c in range(8):
-     if(r,c)!=(k_r,k_c) :
-      if(move.king_legal(k_r,k_c,r,c) and not move.is_checked(k_r,k_c)):
-        legal_move_count+=1
-   return legal_move_count
- def is_check_mate(k_r,k_c):
-   if(move.is_checked(k_r,k_c) and (move.generate_king_possible_moves(k_r,k_c)==0)):
-     return True
-   else:
-     return False
-   
-   if move.is_checked(k_r,k_c):
-     
  
+     
+ def is_checkmated(k_r,k_c):
+  king_color="white"if(move.is_white(move.unparse_move(k_r,k_c))) else "black"
+  if(len(move.king_checkers[king_color])>1):
+    return not move.can_king_escape(k_r,k_c)
+  if(move.friend_attack(k_r,k_c) or move.can_friend_block(k_r,k_c) or move.can_king_escape(k_r,k_c)):
+    return True
  def move_piece(real_board,pos_sq,target_sq):
   pos=move.parse_move(pos_sq)
   r,c=pos
