@@ -660,8 +660,10 @@ class move:
          return True
   return False
   
-   
- moves_log=[]
+ moves_log= {
+     "from":[]
+     ,"to":[]
+     }
  def update_place(old_r,old_c,r,c):
    old_sq=move.unparse_move(old_r,old_c)
    color='white'if(move.is_white(old_sq)) else 'black'
@@ -673,10 +675,11 @@ class move:
      if(piece=='rooks' or piece=='bishops' or piece=='knights' or piece=='pawns'):
       idx=move.positions[color][piece].index((old_r,old_c))
       move.positions[color][piece][idx]=(r,c)
-   
-   else:
-    move.positions[color][piece]=(r,c)
- 
+      
+     else:
+      move.positions[color][piece]=(r,c)
+    move.moves_log["from"].append((old_r,old_c))
+    move.moves_log["to"].append((r,c))
      
  def is_checkmated(k_r,k_c):
   king_color="white"if(move.is_white(move.unparse_move(k_r,k_c))) else "black"
@@ -687,6 +690,8 @@ class move:
 # castling/enpassent
  def is_board_end(row):
   return row==0 or row==7
+ # for enpassent ,we need to have list of moves that works like a log , and we need to have an if condition that checks if moving pawn two pieces forward is right through invoking the log list and see if column of target square has a pawn move that moved two steps forward and capture if found  
+ 
  def move_piece(pos_sq,target_sq):
   pos=move.parse_move(pos_sq)
   r,c=pos
@@ -706,7 +711,22 @@ class move:
         real_board[r][c+k_dy+r_dy]=board[tr][tc]
         real_board[r][c]='.'
         real_board[tr][tc]='.' 
-      elif(move.is_pawn(r,c) and move.)
+      elif(move.is_pawn(move.unparse_move(r,c)) and move.is_white(move.unparse_move(r,c)) and(move.is_pawn(move.unparse_move(tr-1,tc-1)) and not move.is_friend(r,c,tr-1,tc-1)) and move.is_empty2(tr,tc) and abs(move.moves_log["from"][-1][1]-move.moves_log["to"][-1][1]== 2)):
+       real_board[tr][tc]=real_board[r][c]
+       real_board[tr-1][tc-1]='.'
+       real_board[r][c]='.'
+      elif(move.is_pawn(move.unparse_move(r,c)) and move.is_white(move.unparse_move(r,c)) and(move.is_pawn(move.unparse_move(tr-1,tc+1)) and not move.is_friend(r,c,tr-1,tc-1)) and move.is_empty2(tr,tc)  and abs(move.moves_log["from"][-1][1]-move.moves_log["to"][-1][1]== 2)):
+        real_board[tr][tc]=real_board[r][c]
+        real_board[tr-1][tc+1]='.'
+        real_board[r][c]='.'
+      elif(move.is_pawn(move.unparse_move(r,c)) and move.is_black(move.unparse_move(r,c)) and (move.is_pawn(move.unparse_move(tr+1,tc-1)) and not move.is_friend(r,c,tr-1,tc-1)) and move.is_empty2(tr,tc) and abs(move.moves_log["from"][-1][1]-move.moves_log["to"][-1][1]== 2)):
+       real_board[tr][tc]=real_board[r][c]
+       real_board[tr+1][tc-1]='.'
+       real_board[r][c]='.'
+      elif(move.is_pawn(move.unparse_move(r,c)) and move.is_black(move.unparse_move(r,c)) and(move.is_pawn(move.unparse_move(tr+1,tc+1)) and not move.is_friend(r,c,tr-1,tc-1)) and move.is_empty2(tr,tc) and abs(move.moves_log["from"][-1][1]-move.moves_log["to"][-1][1]== 2)):
+        real_board[tr][tc]=real_board[r][c]
+        real_board[tr+1][tc+1]='.'
+        real_board[r][c]='.'
       else:
        real_board[tr][tc]=real_board[r][c]
        real_board[tr][tc]='.'
@@ -714,9 +734,25 @@ class move:
      elif(move.is_checked(k_r,k_c)):
       # if(move.friend_attack(k_r,k_c) or move.can_friend_block(k_r,k_c)):
         continue
-       else:
+    else:
          break
-      
+    #designed for castling
+def reset_board(board):
+ board.copy(real_board)
+def can_be_checked(k_r,k_c,R_r,R_c):
+   k_dy,r_dy=(2,-1) if(R_c>c) else(-2,1)
+   board[k_r][k_c+k_dy]=board[k_r][k_c]
+   board[k_r][k_c+k_dy+r_dy]=board[R_r][R_c]
+   board[k_r][k_c]='.'
+   board[R_r][R_c]='.'
+   checked=None
+   if(move.is_checked(k_r,k_c+k_dy)):
+     checked=True
+   else :
+     checked=False
+   reset_board(board)
+   return checked
+    
 def print_board(board):
     for row in board:
         print(' '.join(row))
