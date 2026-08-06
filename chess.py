@@ -136,7 +136,7 @@ class move:
       else:
        print('cant attack friend!')
        return  False  
-    board[newpos_r][newpos_c]="r"if(move.is_black(move.unparse_move(newpos_r,newpos_c))) else "R" 
+  
     return True
    
   
@@ -249,7 +249,7 @@ class move:
     dy,dx=bish_silding_dirs[2]
    elif(target_c>pos_c  and target_r>pos_r):
     dy,dx=bish_silding_dirs[0]
-   elif(target_c>pos_c  and target_r>pos_r):
+   elif(target_c>pos_c  and target_r<pos_r):
       dy,dx=bish_silding_dirs[1]
    else:
     print("wrong move for bishop ") 
@@ -268,8 +268,7 @@ class move:
     else:
       print('cant attack friend!')
       return False
-  board[pos_r][pos_c]="b"if(move.is_black(move.unparse_move(pos_r,pos_c))) else "B"   
-  board[emptyr][emptyc]='.'
+  
   return True
     
  def queen_legal(pos_r,pos_c,target_r,target_c):
@@ -333,21 +332,20 @@ class move:
     else:
      print('cant attack friend!')
      return  False  
-  board[newpos_r][newpos_c]="k"if(move.is_black(move.unparse_move(newpos_r,newpos_c))) else "K" 
-  return True
+ 
  def king_legal(pos_r,pos_c,target_r,target_c):
-    king_dirs=[(1,1),(1,-1),(-1,1),(-1,-1),(1,0),(-1,0),(0,1),(0,-1)] 
-    (dx,dy)=(0,0)
-    if(abs(pos_r-target_r)==abs(target_c-pos_c)):
-      if(target_c<pos_c and target_r<pos_r):
-       dx,dy=king_dirs[3]
-      elif(target_c<pos_c  and target_r>pos_r):
-       dx,dy=king_dirs[2]
-      elif(target_c>pos_c  and target_r>pos_r):
-       dx,dy=king_dirs[0]
-      elif(target_c>pos_c  and target_r>pos_r):
-       dx,dy=king_dirs[1]
-      else:
+      king_dirs=[(1,1),(1,-1),(-1,1),(-1,-1),(1,0),(-1,0),(0,1),(0,-1)] 
+      (dx,dy)=(0,0)
+      if(abs(pos_r-target_r)==abs(target_c-pos_c)):
+       if(target_c<pos_c and target_r<pos_r):
+        dx,dy=king_dirs[3]
+       elif(target_c<pos_c  and target_r>pos_r):
+        dx,dy=king_dirs[2]
+       elif(target_c>pos_c  and target_r>pos_r):
+        dx,dy=king_dirs[0]
+       elif(target_c>pos_c  and target_r<pos_r):
+        dx,dy=king_dirs[1]
+       else:
         return
       if (target_c == pos_c and target_r > pos_r):
        dx,dy=king_dirs[-4]
@@ -359,22 +357,21 @@ class move:
        dx,dy=king_dirs[-1]
 
        ###nigga rook here
-      elif (target_r == pos_r and target_c >pos_c and move.is_rook(move.unparse_move(target_r,target_c)) and move.is_empty2(pos_r,pos_c+1) and  move.is_empty2(pos_r,pos_c+2) and not move.is_checked(pos_r,pos_c)):
+      elif (target_r == pos_r and target_c >pos_c and move.is_rook(move.unparse_move(target_r,target_c)) and move.is_empty2(pos_r,pos_c+1) and  move.is_empty2(pos_r,pos_c+2) and not move.is_checked(pos_r,pos_c) and not can_be_checked(pos_r,pos_c,target_r,target_c)):
        dx,dy=None
-      elif (target_r == pos_r and target_c < pos_c and move.is_rook(move.unparse_move(target_r,target_c)) and move.is_empty2(pos_r,pos_c-1) and  move.is_empty2(pos_r,pos_c-2) and not move.is_checked(pos_r,pos_c)):
+      elif (target_r == pos_r and target_c < pos_c and move.is_rook(move.unparse_move(target_r,target_c)) and move.is_empty2(pos_r,pos_c-1) and  move.is_empty2(pos_r,pos_c-2) and not move.is_checked(pos_r,pos_c) and not can_be_checked(pos_r,pos_c,target_r,target_c)):
        dx,dy=None
       else:
        return
       newpos_r=pos_r+dx
       newpos_c=pos_c+dy
-    if((move.is_empty2(newpos_r,newpos_c) or not move.is_friend(newpos_r,newpos_c,pos_r,pos_c) ) and not move.is_king(move.unparse_move(pos_r+dx,pos_c+dy))):  
-       pos_r=newpos_r
-       pos_c=newpos_c 
-       board[newpos_r][newpos_c]="k"if(move.is_black(move.unparse_move(newpos_r,newpos_c))) else "K" 
-       return True  
-    else:
-       print('cant attack friend!')
-       return True
+      if((move.is_empty2(newpos_r,newpos_c) or not move.is_friend(newpos_r,newpos_c,pos_r,pos_c) ) and not move.is_king(move.unparse_move(pos_r+dx,pos_c+dy))):  
+         pos_r=newpos_r
+         pos_c=newpos_c 
+         return True  
+      else:
+         print('cant attack here!')
+         return False
  def pawn_legal(pos_r,pos_c,target_r,target_c):
   newpos_r=0
   newpos_c=0
@@ -410,8 +407,6 @@ class move:
   pos_r=target_r
   pos_c=target_c
   
-  board[newpos_r][newpos_c]= "p"if(move.is_black(move.unparse_move(pos_r,pos_c))) else"P"
-  board[pos_r][pos_c]='.'
   return True
     
 
@@ -423,9 +418,12 @@ class move:
   return move.positions[letter_config]['king']
  king_checkers={'white':[],'black':[]}
  def is_checked(k_r,k_c):
+  
   pos_sq=move.unparse_move(k_r,k_c)
   color="black"if move.is_black(pos_sq) else "white"
   enemy_color="white"if move.is_black(pos_sq) else "black"
+  move.king_checkers[color]=[]
+
   for piece,position in move.positions[enemy_color].items():
     if piece=='queen' or piece=='king':
      r,c=position
@@ -450,10 +448,11 @@ class move:
         else:
           if(move.bishop_legal(r,c,k_r,k_c)):
            move.king_checkers[color].append((piece,r,c))
-        if(len(move.king_checkers)>0):
-          return True
-        else:
-          return False 
+
+  if(len(move.king_checkers[color])>0):
+    return True
+  else:
+    return False
        
  # we need to identify 1.whether a king is under attack 2. if the king can be saved through a friends move(capture the threat , or block the threat) 3. king has no way to move
  # to make friend block we have to identify which r,c is the checker on relative to kings place
@@ -496,7 +495,7 @@ class move:
           b_r=b_r+dx
           b_c=b_c+dy
           block_sqrs.append((b_r,b_c))
-        return block_sqrs
+    return block_sqrs
 
  def queen_blocks(k_r,k_c):
       block_sqrs=[]
@@ -563,7 +562,7 @@ class move:
              elif (er == k_r and ec < k_c):
                dx,dy=rook_dir[-1]
              else:
-               return 
+               continue 
            
              for_limit=0
            
@@ -577,7 +576,7 @@ class move:
                b_r+=dx
                b_c+=dy
                block_sqrs.append((b_r,b_c))
-             return block_sqrs
+  return block_sqrs
  king_escape=[]
  def can_king_escape(k_r,k_c):
   king_color='white' if move.is_white(move.unparse_move(k_r,k_c)) else 'black'
@@ -599,7 +598,7 @@ class move:
  attack_or_blocking_pieces=[] 
  def can_friend_block(k_r,k_c):
   king_color='white' if move.is_white(move.unparse_move(k_r,k_c)) else 'black'
-  if(len(move.king_checkers[king_color]>1)):
+  if(len(move.king_checkers[king_color])>1):
     return False
   rook_blocks_coor=move.rook_blocks(k_r,k_c)
   queen_blocks_coor=move.queen_blocks(k_r,k_c)
@@ -637,7 +636,7 @@ class move:
  def friend_attack(k_r,k_c):
   king_color='white' if move.is_white(move.unparse_move(k_r,k_c)) else 'black'
   
-  for piece,position in move.positions[king_color]:
+  for piece,position in move.positions[king_color].items():
     for e_piece,r,c in move.king_checkers[king_color]:
      if piece=='queen' or piece=='king':
       fr,fc=position
@@ -678,7 +677,7 @@ class move:
  def update_place(old_r,old_c,r,c):
    old_sq=move.unparse_move(old_r,old_c)
    color='white'if(move.is_white(old_sq)) else 'black'
-   is_pieces={"king":move.is_king(old_sq),"bishops":move.is_bishop(old_sq),"knights":move.is_knight(old_sq),"queen":move.is_queen(old_sq),"pawns":move.is_pawn(old_sq)}
+   is_pieces={"king":move.is_king(old_sq),"bishops":move.is_bishop(old_sq),"knights":move.is_knight(old_sq),"queen":move.is_queen(old_sq),"pawns":move.is_pawn(old_sq),"rooks":move.is_rook(old_sq)}
    piece=None
    for key,value in is_pieces.items():
     if(value):
@@ -689,79 +688,82 @@ class move:
       
      else:
       move.positions[color][piece]=(r,c)
-    move.moves_log["from"].append((old_r,old_c))
-    move.moves_log["to"].append((r,c))
+   move.moves_log["from"].append((old_r,old_c))
+   move.moves_log["to"].append((r,c))
      
  def is_checkmated(k_r,k_c):
   king_color="white"if(move.is_white(move.unparse_move(k_r,k_c))) else "black"
   if(len(move.king_checkers[king_color])>1):
     return not move.can_king_escape(k_r,k_c)
-  if(move.friend_attack(k_r,k_c) or move.can_friend_block(k_r,k_c) or move.can_king_escape(k_r,k_c)):
+  if(not (move.friend_attack(k_r,k_c) or move.can_friend_block(k_r,k_c) or move.can_king_escape(k_r,k_c))):
     return True
 # castling/enpassent
  def is_board_end(row):
   return row==0 or row==7
  # for enpassent ,we need to have list of moves that works like a log , and we need to have an if condition that checks if moving pawn two pieces forward is right through invoking the log list and see if column of target square has a pawn move that moved two steps forward and capture if found  
- 
+  #return True
  def move_piece(pos_sq,target_sq):
   pos=move.parse_move(pos_sq)
   r,c=pos
   if(not move.is_empty2(r,c) and pos_sq!=target_sq and not move.is_king(target_sq)):
    target=move.parse_move(target_sq)
    tr,tc=target
-   legal_move=[move.is_pawn(pos_sq) and move.pawn_legal(r,c, tr,tc),move.is_bishop(pos_sq) and move.bishop_legal(r,c, tr,tc), move.rook_legal(r,c, tr,tc) and move.is_rook(pos_sq), move.knight_legal(r,c, tr,tc) and move.is_knight(pos_sq),move.queen_legal(r,c, tr,tc) and move.queen_legal(pos_sq),move.king_legal(r,c, tr,tc) and move.is_king(pos_sq)]
+   legal_move=[move.is_pawn(pos_sq) and move.pawn_legal(r,c, tr,tc),move.is_bishop(pos_sq) and move.bishop_legal(r,c, tr,tc), move.rook_legal(r,c, tr,tc) and move.is_rook(pos_sq), move.knight_legal(r,c, tr,tc) and move.is_knight(pos_sq),move.queen_legal(r,c, tr,tc) and move.is_queen(pos_sq),move.king_legal(r,c, tr,tc) and move.is_king(pos_sq)]
 
    for x in legal_move:
     if(x):
      k_r,k_c=move.index_my_king(r,c)
      
-    if(not move.is_checkmated(k_r,k_c)):
-     if((move.is_checked(k_r,k_c) and (tr,tc) in move.attack_or_blocking_pieces) or (move.is_checked(k_r,k_c) and (tr,tc) in move.king_escape ) or not move.is_checked(k_r,k_c)):
-      if(move.is_queen(r,c) and move.is_rook(move.unparse_move(tr,tc))):
-        k_dy,r_dy=(2,-1) if(tc>c) else(-2,1)
-        real_board[r][c+k_dy]=real_board[r][c]
-        real_board[r][c+k_dy+r_dy]=board[tr][tc]
-        real_board[r][c]='.'
-        real_board[tr][tc]='.' 
-        move.update_place(r,c,r,c+k_dy)
-        move.update_place(tr,tc,r,c+k_dy+r_dy)
-      elif(move.is_pawn(move.unparse_move(r,c)) and move.is_white(move.unparse_move(r,c)) and(move.is_pawn(move.unparse_move(tr-1,tc-1)) and not move.is_friend(r,c,tr-1,tc-1)) and move.is_empty2(tr,tc) and abs(move.moves_log["from"][-1][1]-move.moves_log["to"][-1][1]== 2)):
-       real_board[tr][tc]=real_board[r][c]
-       real_board[tr-1][tc-1]='.'
-       real_board[r][c]='.'
-       move.update_place(r,c,tr,tc)
-
-       move.update_place(r,c,tr,tc)
-      elif(move.is_pawn(move.unparse_move(r,c)) and move.is_white(move.unparse_move(r,c)) and(move.is_pawn(move.unparse_move(tr-1,tc+1)) and not move.is_friend(r,c,tr-1,tc-1)) and move.is_empty2(tr,tc)  and abs(move.moves_log["from"][-1][1]-move.moves_log["to"][-1][1]== 2)):
+     if(not move.is_checkmated(k_r,k_c)):
+      if((move.is_checked(k_r,k_c) and (tr,tc) in move.attack_or_blocking_pieces) or (move.is_checked(k_r,k_c) and (tr,tc) in move.king_escape ) or not move.is_checked(k_r,k_c)):
+       if(move.is_queen(r,c) and move.is_rook(move.unparse_move(tr,tc))):
+         k_dy,r_dy=(2,-1) if(tc>c) else(-2,1)
+         real_board[r][c+k_dy]=real_board[r][c]
+         real_board[r][c+k_dy+r_dy]=board[tr][tc]
+         real_board[r][c]='.'
+         real_board[tr][tc]='.' 
+         move.update_place(r,c,r,c+k_dy)
+         move.update_place(tr,tc,r,c+k_dy+r_dy)
+         return True
+       elif(move.is_pawn(move.unparse_move(r,c)) and move.is_white(move.unparse_move(r,c)) and(move.is_pawn(move.unparse_move(tr+1,tc)) and not move.is_friend(r,c,tr+1,tc)) and move.is_empty2(tr,tc) and abs(move.moves_log["from"][-1][0]-move.moves_log["to"][-1][0])==2):
         real_board[tr][tc]=real_board[r][c]
-        real_board[tr-1][tc+1]='.'
+        real_board[tr+1][tc]='.'
+        real_board[r][c]='.'
+        move.update_place(r,c,tr,tc) 
+        return True
+       elif(move.is_pawn(move.unparse_move(r,c)) and move.is_white(move.unparse_move(r,c)) and(move.is_pawn(move.unparse_move(tr+1,tc)) and not move.is_friend(r,c,tr+1,tc)) and move.is_empty2(tr,tc)  and abs(move.moves_log["from"][-1][0]-move.moves_log["to"][-1][0])== 2):
+         real_board[tr][tc]=real_board[r][c]
+         real_board[tr+1][tc]='.'
+         real_board[r][c]='.'
+         move.update_place(r,c,tr,tc)
+         return True
+       elif(move.is_pawn(move.unparse_move(r,c)) and move.is_black(move.unparse_move(r,c)) and (move.is_pawn(move.unparse_move(tr-1,tc)) and not move.is_friend(r,c,tr-1,tc)) and move.is_empty2(tr,tc) and abs(move.moves_log["from"][-1][0]-move.moves_log["to"][-1][0])== 2):
+        real_board[tr][tc]=real_board[r][c]
+        real_board[tr-1][tc]='.'
         real_board[r][c]='.'
         move.update_place(r,c,tr,tc)
-
-      elif(move.is_pawn(move.unparse_move(r,c)) and move.is_black(move.unparse_move(r,c)) and (move.is_pawn(move.unparse_move(tr+1,tc-1)) and not move.is_friend(r,c,tr-1,tc-1)) and move.is_empty2(tr,tc) and abs(move.moves_log["from"][-1][1]-move.moves_log["to"][-1][1]== 2)):
-       real_board[tr][tc]=real_board[r][c]
-       real_board[tr+1][tc-1]='.'
-       real_board[r][c]='.'
-       move.update_place(r,c,tr,tc)
-
-      elif(move.is_pawn(move.unparse_move(r,c)) and move.is_black(move.unparse_move(r,c)) and(move.is_pawn(move.unparse_move(tr+1,tc+1)) and not move.is_friend(r,c,tr-1,tc-1)) and move.is_empty2(tr,tc) and abs(move.moves_log["from"][-1][1]-move.moves_log["to"][-1][1]== 2)):
+        return True
+       elif(move.is_pawn(move.unparse_move(r,c)) and move.is_black(move.unparse_move(r,c)) and(move.is_pawn(move.unparse_move(tr-1,tc)) and not move.is_friend(r,c,tr-1,tc)) and move.is_empty2(tr,tc) and abs(move.moves_log["from"][-1][0]-move.moves_log["to"][-1][0])== 2):
+         real_board[tr][tc]=real_board[r][c]
+         real_board[tr-1][tc]='.'
+         real_board[r][c]='.'
+         move.update_place(r,c,tr,tc)
+         return True
+       else:
         real_board[tr][tc]=real_board[r][c]
-        real_board[tr+1][tc+1]='.'
         real_board[r][c]='.'
-        move.update_place(r,c,tr,tc)
-  
-      else:
-       real_board[tr][tc]=real_board[r][c]
-       real_board[tr][tc]='.'
-      move.update_place(r,c,tr,tc)
+       move.update_place(r,c,tr,tc)
+       return True
      else:
-        return
-    
-    #designed for castling
+        print("can't move there")
+        return False
+   print('illegal move')
+   return False
+     #designed for castling
 def reset_board(board):
  board.copy(real_board)
 def can_be_checked(k_r,k_c,R_r,R_c):
-   k_dy,r_dy=(2,-1) if(R_c>c) else(-2,1)
+   k_dy,r_dy=(2,-1) if(R_c>k_c) else(-2,1)
    board[k_r][k_c+k_dy]=board[k_r][k_c]
    board[k_r][k_c+k_dy+r_dy]=board[R_r][R_c]
    board[k_r][k_c]='.'
@@ -783,32 +785,47 @@ def game_loop():
   while(True):
    print_board(real_board)
    while(white_turn):
-    pos=input("Enter position square")
-    if(move.is_black(pos)):
-     print("enter white position!")
-     continue
-    
-    print("enter target square")
-    target=input("Enter position square")
-    if(move.is_white(target)):
-     print("enter black target!")
-     continue
-    move.move_piece(pos,target)
+    print("White turn")
+    while(True):
+     pos=input("Enter position square")
+     if(move.is_black(pos)):
+      print("enter white position!")
+      continue
+     if(move.is_empty(pos)):
+       print("empty")
+       continue   
+     target=input("Enter target square")
+     if(move.is_friend(*move.parse_move(pos),*move.parse_move(target))):
+       print("cant do that to friend!")
+       continue
+     if move.move_piece(pos,target):
+       break
+     else:
+       print("enter legal moves!")
+       continue 
     print_board(real_board)
+    white_turn=False
    while(not white_turn):
-    print("Enter position square")
-    
-    pos=input("Enter position square")
-    if(move.is_white(pos)):
-         print("enter black pos!")
-         continue
-    print("enter target square")
-    target=input("Enter position square")
-    if(move.is_black(pos)):
-         print("enter white position!")
-         continue
-    move.move_piece(pos,target)
+    print("Black turn")
+    while True:    
+      pos=input("Enter position square")
+      if(move.is_white(pos)):
+           print("enter black pos!")
+           continue
+      target=input("Enter target square")
+      if(move.is_black(target)):
+           print("cant do that to friend!")
+           continue
+      if(move.is_empty(pos)):
+        print("empty")
+        continue
+      if(move.move_piece(pos,target)):
+        break
+      else:
+        print("enter legal move")
+        continue
     print_board(real_board)
+    white_turn=True
 
 
 # testing here
