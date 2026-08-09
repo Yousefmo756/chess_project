@@ -140,89 +140,7 @@ class move:
     return True
    
   
- """def rook_legal(pos_r,pos_c,target_r,target_c):
-  color_mapping=move.is_black(move.unparse_move(pos_r,pos_c))
-  rook_dir=[(1,0)(-1,0),(0,1),(0,-1)] 
-  if (target_c==pos_c and target_r>pos_r):
-   for i in range (pos_r+1,target_r+1,1):
-    if( move.is_empty2(i,target_c)):
-     board[i][pos_c]= "r"if(color_mapping) else "R"
-     board[i-1][pos_c]='.'
-    elif (not move.is_friend(i-1,pos_c,i,pos_c)):
-     board[i][pos_c]= "r"if(color_mapping) else "R"
-     board[i-1][pos_c]='.'
-     break
-    else:
-     break
-  elif(target_c==pos_c and target_r<pos_r):
-   for i in range(pos_r-1, target_r-1, -1):
-    if( move.is_empty2(i,target_c) ):
-     board[i][pos_c]= "r"if(color_mapping) else "R"
-     board[i+1][pos_c]='.'
-    elif (not move.is_friend(i+1,pos_c,i,pos_c)):
-        board[i][pos_c]= "r"if(color_mapping) else "R"
-        board[i+1][pos_c]='.'
-        break
-    else:
-     break
-  elif(target_r==pos_r and target_c>pos_c):
-    for i in range (pos_c+1,target_c+1,1):
-       if( move.is_empty2(target_r,i)):
-        board[pos_r][i]= "r"if(color_mapping) else "R"
-        board[pos_r][i-1]='.'
-       elif (not move.is_friend(pos_r,i-1,pos_r,i)):
-          board[pos_r][i]= "r"if(color_mapping) else "R"
-          board[pos_r][i-1]='.'
-          break
-       else:
-         break
-  elif(target_r==pos_r and target_c<pos_c):
-      for i in range (pos_c-1,target_c-1,-1):
-       if( move.is_empty2(target_r,i) ):
-         board[pos_r][i]= "r"if(color_mapping) else "R"
-         board[pos_r][i+1]='.' 
-       elif (not move.is_friend(pos_r,i+1,pos_r,i)):
-        board[pos_r][i]= "r"if(color_mapping) else "R"
-        board[pos_r][i+1]='.' 
-        break
-       else:
-        break
-  else:
-   print('wrong move for rook')"""
-# 2 up (row-2)1 right(col+1) ,2 up(row-2) 1 left(col-1),2 down(row+2) 1right(col+1),2 down 1 left(col-1),2right(col+2) 1 down(row+1),2right(col+2) 1 up(row-1),2left(col-2) 1 down(row+1),2left (col-2) 1 up (row-1)
- """def knight_legal(pos_r,pos_c,target_r,target_c): 
-  #legal_movements=[istopright,istopleft,isdownright,isdownleft,isrightdown,isrightup,isleftdown,isleftup]
-   if( move.is_empty2(target_r,target_c) or not move.is_friend(pos_r,pos_c,target_r,target_c)):
-    if(target_r,target_c)==(pos_r-2,pos_c+1):
-       board[target_r][target_c]=board[pos_r][pos_c] 
-       board[pos_r][pos_c] ='.'
-    elif (target_r,target_c)==(pos_r,pos_c):
-       board[target_r][target_c]=board[pos_r][pos_c]
-       board[pos_r][pos_c]='.'
-    elif (target_r,target_c)==(pos_r+2,pos_c+1):
-       board[target_r][target_c]=board[pos_r][pos_c]
-       board[pos_r][pos_c]='.'
-    elif (target_r,target_c)==(pos_r+2,pos_c-1):
-       board[target_r][target_c]=board[pos_r][pos_c]
-       board[pos_r][pos_c]='.'
-    elif (target_r,target_c)==(pos_r,pos_c):
-       board[target_r][target_c]=board[pos_r][pos_c]
-       board[pos_r][pos_c]='.'
-    elif (target_r,target_c)==(pos_r-1,pos_c+2):
-       board[target_r][target_c]=board[pos_r][pos_c]
-       board[pos_r][pos_c]='.'
-    elif (target_r,target_c)==(pos_r+1,pos_c-2):
-       board[target_r][target_c]=board[pos_r][pos_c]
-       board[pos_r][pos_c]='.'
-    elif (target_r,target_c)==(pos_r-1,pos_c-2):
-       board[target_r][target_c]=board[pos_r][pos_c]
-       board[pos_r][pos_c]='.'
-    else:
-        print('illegal move for knight')
-
-   else:
-    print('cant attack friend!') """
-
+ 
 
  def knight_legal(pos_r,pos_c,target_r,target_c):
   KNIGHT_DELTAS = {(-2,1),(-2,-1),(2,1),(2,-1),(-1,2),(1,2),(-1,-2),(1,-2)}
@@ -357,10 +275,10 @@ class move:
        dx,dy=king_dirs[-1]
 
        ###nigga rook here
-      elif (target_r == pos_r and target_c >pos_c and move.is_rook(move.unparse_move(target_r,target_c)) and move.is_empty2(pos_r,pos_c+1) and  move.is_empty2(pos_r,pos_c+2) and not move.is_checked(pos_r,pos_c) and not can_be_checked(pos_r,pos_c,target_r,target_c)):
-       dx,dy=None
-      elif (target_r == pos_r and target_c < pos_c and move.is_rook(move.unparse_move(target_r,target_c)) and move.is_empty2(pos_r,pos_c-1) and  move.is_empty2(pos_r,pos_c-2) and not move.is_checked(pos_r,pos_c) and not can_be_checked(pos_r,pos_c,target_r,target_c)):
-       dx,dy=None
+      elif (target_r == pos_r and target_c >pos_c and move.is_rook(move.unparse_move(target_r,target_c)) and move.is_empty2(pos_r,pos_c+1) and  move.is_empty2(pos_r,pos_c+2) and not move.is_checked(pos_r,pos_c) and not move.can_be_checked(pos_r,pos_c,target_r,target_c)):
+       dx,dy=(0,2)
+      elif (target_r == pos_r and target_c < pos_c and move.is_rook(move.unparse_move(target_r,target_c)) and move.is_empty2(pos_r,pos_c-1) and  move.is_empty2(pos_r,pos_c-2) and not move.is_checked(pos_r,pos_c) and not move.can_be_checked(pos_r,pos_c,target_r,target_c)):
+       dx,dy=(0,-2)
       else:
        return
       newpos_r=pos_r+dx
@@ -725,56 +643,55 @@ class move:
          move.update_place(r,c,r,c+k_dy)
          move.update_place(tr,tc,r,c+k_dy+r_dy)
          return True
-       elif(move.is_pawn(move.unparse_move(r,c)) and move.is_white(move.unparse_move(r,c)) and(move.is_pawn(move.unparse_move(tr+1,tc)) and not move.is_friend(r,c,tr+1,tc)) and move.is_empty2(tr,tc) and abs(move.moves_log["from"][-1][0]-move.moves_log["to"][-1][0])==2):
-        real_board[tr][tc]=real_board[r][c]
-        real_board[tr+1][tc]='.'
-        real_board[r][c]='.'
-        move.update_place(r,c,tr,tc) 
-        return True
-       elif(move.is_pawn(move.unparse_move(r,c)) and move.is_white(move.unparse_move(r,c)) and(move.is_pawn(move.unparse_move(tr+1,tc)) and not move.is_friend(r,c,tr+1,tc)) and move.is_empty2(tr,tc)  and abs(move.moves_log["from"][-1][0]-move.moves_log["to"][-1][0])== 2):
-         real_board[tr][tc]=real_board[r][c]
-         real_board[tr+1][tc]='.'
-         real_board[r][c]='.'
-         move.update_place(r,c,tr,tc)
-         return True
-       elif(move.is_pawn(move.unparse_move(r,c)) and move.is_black(move.unparse_move(r,c)) and (move.is_pawn(move.unparse_move(tr-1,tc)) and not move.is_friend(r,c,tr-1,tc)) and move.is_empty2(tr,tc) and abs(move.moves_log["from"][-1][0]-move.moves_log["to"][-1][0])== 2):
-        real_board[tr][tc]=real_board[r][c]
-        real_board[tr-1][tc]='.'
-        real_board[r][c]='.'
-        move.update_place(r,c,tr,tc)
-        return True
-       elif(move.is_pawn(move.unparse_move(r,c)) and move.is_black(move.unparse_move(r,c)) and(move.is_pawn(move.unparse_move(tr-1,tc)) and not move.is_friend(r,c,tr-1,tc)) and move.is_empty2(tr,tc) and abs(move.moves_log["from"][-1][0]-move.moves_log["to"][-1][0])== 2):
-         real_board[tr][tc]=real_board[r][c]
-         real_board[tr-1][tc]='.'
-         real_board[r][c]='.'
-         move.update_place(r,c,tr,tc)
-         return True
-       else:
-        real_board[tr][tc]=real_board[r][c]
-        real_board[r][c]='.'
+      elif(move.is_pawn(move.unparse_move(r,c)) and move.is_white(move.unparse_move(r,c)) and tr==r-1 and(move.is_pawn(move.unparse_move(tr+1,tc)) and not move.is_friend(r,c,tr+1,tc)) and move.is_empty2(tr,tc) and move.moves_log["to"][-1]==(tr+1,tc) and move.moves_log["from"][-1][0]==1 and abs(move.moves_log["from"][-1][0]-move.moves_log["to"][-1][0])==2 and c==tc-1):
+       real_board[tr][tc]=real_board[r][c]
+       real_board[tr+1][tc]='.'
+       real_board[r][c]='.'
+       move.update_place(r,c,tr,tc) 
+       return True
+     elif(move.is_pawn(move.unparse_move(r,c)) and move.is_white(move.unparse_move(r,c)) and tr==r-1 and(move.is_pawn(move.unparse_move(tr+1,tc)) and not move.is_friend(r,c,tr+1,tc)) and move.is_empty2(tr,tc) and move.moves_log["to"][-1]==(tr+1,tc) and move.moves_log["from"][-1][0]==1 and abs(move.moves_log["from"][-1][0]-move.moves_log["to"][-1][0])==2 and c==tc+1):
+       real_board[tr][tc]=real_board[r][c]
+       real_board[tr+1][tc]='.'
+       real_board[r][c]='.'
+       move.update_place(r,c,tr,tc)
+       return True
+     elif(move.is_pawn(move.unparse_move(r,c)) and move.is_black(move.unparse_move(r,c)) and tr==r+1 and (move.is_pawn(move.unparse_move(tr-1,tc)) and not move.is_friend(r,c,tr-1,tc)) and move.is_empty2(tr,tc) and move.moves_log["to"][-1]==(tr-1,tc) and move.moves_log["from"][-1][0]==6 and abs(move.moves_log["from"][-1][0]-move.moves_log["to"][-1][0])==2 and c==tc+1):
+      real_board[tr][tc]=real_board[r][c]
+      real_board[tr-1][tc]='.'
+      real_board[r][c]='.'
+      move.update_place(r,c,tr,tc)
+      return True
+     elif(move.is_pawn(move.unparse_move(r,c)) and move.is_black(move.unparse_move(r,c)) and tr==r+1 and(move.is_pawn(move.unparse_move(tr-1,tc)) and not move.is_friend(r,c,tr-1,tc)) and move.is_empty2(tr,tc) and move.moves_log["to"][-1]==(tr-1,tc) and move.moves_log["from"][-1][0]==6 and abs(move.moves_log["from"][-1][0]-move.moves_log["to"][-1][0])==2 and c==tc-1):
+       real_board[tr][tc]=real_board[r][c]
+       real_board[tr-1][tc]='.'
+       real_board[r][c]='.'
        move.update_place(r,c,tr,tc)
        return True
      else:
-        print("can't move there")
-        return False
+      real_board[tr][tc]=real_board[r][c]
+      real_board[r][c]='.'
+     move.update_place(r,c,tr,tc)
+     return True
+      
+   
    print('illegal move')
    return False
      #designed for castling
-def reset_board(board):
- board.copy(real_board)
-def can_be_checked(k_r,k_c,R_r,R_c):
-   k_dy,r_dy=(2,-1) if(R_c>k_c) else(-2,1)
-   board[k_r][k_c+k_dy]=board[k_r][k_c]
-   board[k_r][k_c+k_dy+r_dy]=board[R_r][R_c]
-   board[k_r][k_c]='.'
-   board[R_r][R_c]='.'
-   checked=None
-   if(move.is_checked(k_r,k_c+k_dy)):
-     checked=True
-   else :
-     checked=False
-   reset_board(board)
-   return checked
+ def reset_board(board):
+  board=real_board.copy()
+ def can_be_checked(k_r,k_c,R_r,R_c):
+    k_dy,r_dy=(2,-1) if(R_c>k_c) else(-2,1)
+    board[k_r][k_c+k_dy]=board[k_r][k_c]
+    board[k_r][k_c+k_dy+r_dy]=board[R_r][R_c]
+    board[k_r][k_c]='.'
+    board[R_r][R_c]='.'
+    checked=None
+    if(move.is_checked(k_r,k_c+k_dy)):
+      checked=True
+    else :
+      checked=False
+    move.reset_board(board)
+    return checked
     
 def print_board(board):
     for row in board:
