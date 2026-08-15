@@ -686,7 +686,7 @@ class move:
    move.board_snapshots.append({"board":deepcopy(move.positions),"turn":color,"enpassent":move.enpassent_corr(ispawnmove),"castling": {
         "white": move.castling_rights("white"),   
         "black": move.castling_rights("black"),
-    }})
+    },"checkers":deepcopy(move.king_checkers),"attackers/blockers":deepcopy(move.attack_or_blocking_pieces)  })
    
  nextindex=None
  def is_three_fold():
@@ -822,6 +822,8 @@ class move:
            color = 'black' if is_black_pawn else 'white'
            idx = move.positions[color]['pawns'].index((tr,tc))
            del move.positions[color]['pawns'][idx]
+           promo_key={'b':'bishops','n':'knights','q':'queen','r':'rooks'}[pivot]
+           move.positions[color][promo_key].append((tr,tc))
          else:
            return False
        return True
@@ -858,8 +860,8 @@ class move:
   return checked
 board_snapshots=[{"board":deepcopy(move.positions),"turn":"white","enpassent":None,"castling": {
         "white": move.castling_rights("white"),   
-         "black": move.castling_rights("black"),
-     }}]   
+         "black": move.castling_rights("black")},"checkers":deepcopy(move.king_checkers),"attackers/blockers":deepcopy(move.attack_or_blocking_pieces)
+}]   
 def can_be_checked2(r,c,tr,tc):
  if(not move.is_king(move.unparse_move(r,c))):
   (k_r,k_c)=move.index_my_king(r,c)
@@ -914,9 +916,78 @@ def generate_legal_moves(color):
          legal_moves.append(('queen',(r,c),(row,col)))
    return legal_moves
       
-        
+def material_count(color,positions):
+  material=0
+  value={'pawns':1,'knights':3,'bishops': 3,'rooks':5,'queen':9}
+  for piece,position in positions[color].items():
+   if(piece=='king'):
+     continue
+   else:
+     for r,c in position:
+       material+=value.get(piece)
+  return material
+def evaluate(color, positions):
+    white_material = material_count('white', positions)
+    black_material = material_count('black', positions)
+
+    score = white_material - black_material
+
+    return score if color == 'white' else -score
+def unmove():
+ if(len(move.board_snapshots)>1):
+  for i in range(8):
+    for j in range(8):
+      real_board[i][j]='.'
+  move.king_checkers=deepcopy(move.board_snapshots[-2]['checkers'])
+  move.attack_or_blocking_pieces=deepcopy(move.board_snapshots[-2]['attackers/blockers'])
+  move.positions=deepcopy(move.board_snapshots[-2]['board'])
+  b_mapping={'knights':'n','king':'k','queen':'q','bishops':'b'  ,'rooks':'r','pawns':'p'}
+  mapping={'knights':'N','king':'K','queen':'Q','bishops':'B'  ,'rooks':'R','pawns':'P'}
+  for piece,position in move.positions['white'].items():
+   letter=mapping.get(piece)
+   if(piece=='king'):
+     r,c=position
+     real_board[r][c]=letter
+   else:
+     for r,c in position:
+       real_board[r][c]=letter
+
+  for piece,position in move.positions['black'].items():
+     letter=b_mapping.get(piece)
+     if(piece=='king'):
+      r,c=position
+      real_board[r][c]=letter
+     else:
+       for r,c in position:
+         real_board[r][c]=letter     
+  move.moves_log['from'].pop()
+  move.moves_log['to'].pop()
+  move.board_snapshots.pop()    
+   
+ else:
+   return
+def minimax():
+  
+  pass
+     
+     
+          
 def print_board(board):
     for row in board:
         print(' '.join(row))
+move.move_piece('a2','a3')
+move.move_piece('a3','a4')
+move.move_piece('a4','a5')
+print_board(real_board)
 
-print(generate_legal_moves('white'))
+move.move_piece('b7','b5')
+print_board(real_board)
+move.move_piece('a5','b6')
+print_board(real_board)
+unmove()
+unmove()
+unmove()
+unmove()
+unmove()
+
+print_board(real_board)
