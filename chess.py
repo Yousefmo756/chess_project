@@ -410,205 +410,7 @@ class move:
   else:
     return False
        
- def bishop_blocks(k_r,k_c):
-    block_sqrs=[]
-    king_color='white' if move.is_white(move.unparse_move(k_r,k_c)) else 'black'
-    for e_piece,er,ec in move.king_checkers[king_color]:
-       if(e_piece=='bishops'):
-        bish_sliding_dirs=[(1,1),(1,-1),(-1,1),(-1,-1)]  
-        if(ec<k_c and er<k_r):
-            dx,dy=bish_sliding_dirs[3]
-        elif(ec<k_c  and er>k_r):
-            dx,dy=bish_sliding_dirs[1]
-        elif(ec>k_c  and er>k_r):
-            dx,dy=bish_sliding_dirs[0]
-        elif(ec>k_c  and er<k_r):
-              dx,dy=bish_sliding_dirs[2]
-        else:
-          continue      
-        b_r,b_c=k_r,k_c
-        for i in range(abs(k_c-ec)):
-          b_r=b_r+dx
-          b_c=b_c+dy
-          block_sqrs.append((b_r,b_c))
-    return block_sqrs
- def queen_blocks(k_r,k_c):
-      block_sqrs=[]
-      king_color='white' if move.is_white(move.unparse_move(k_r,k_c)) else 'black'
-      for e_piece,er,ec in move.king_checkers[king_color]:
-       if(e_piece=='queen'):
-          queen_sliding_dirs=[(1,1),(1,-1),(-1,1),(-1,-1),(1,0),(-1,0),(0,1),(0,-1)] 
-          (dx,dy)=(0,0)
-
-          if(abs(k_r-er)==abs(k_c-ec)):
-           if(ec<k_c and er<k_r):
-            dx,dy=queen_sliding_dirs[3]
-           elif(ec<k_c  and er>k_r):
-            dx,dy=queen_sliding_dirs[1]
-           elif(ec>k_c  and er>k_r):
-            dx,dy=queen_sliding_dirs[0]
-           elif(ec>k_c  and er<k_r):
-              dx,dy=queen_sliding_dirs[2]
-           else:
-             continue
-           b_r,b_c=k_r,k_c
-           for i in range(abs(k_c-ec)):  
-             b_r+=dx
-             b_c+=dy    
-             block_sqrs.append((b_r,b_c))
-
-          elif (ec == k_c and er > k_r):
-            dx,dy=queen_sliding_dirs[-4]
-          elif (ec == k_c and er < k_r):
-           dx,dy=queen_sliding_dirs[-3]
-          elif (er == k_r and ec > k_c):
-           dx,dy=queen_sliding_dirs[-2]    
-          elif (er == k_r and ec < k_c):
-           dx,dy=queen_sliding_dirs[-1]
-          else:
-            continue
-
-          if not (abs(k_r-er)==abs(k_c-ec)):
-              for_limit = abs(er-k_r) if ec==k_c else abs(k_c-ec)
-              b_r,b_c=k_r,k_c
-              for i in range(for_limit):
-                  b_r+=dx
-                  b_c+=dy  
-                  block_sqrs.append((b_r,b_c))
-      return block_sqrs
- def rook_blocks(k_r,k_c):
-  block_sqrs=[]
-  king_color='white' if move.is_white(move.unparse_move(k_r,k_c)) else 'black'
-  for e_piece,er,ec in move.king_checkers[king_color]:
-   if(e_piece=='rooks'):
-             rook_dir=[(1,0),(-1,0),(0,1),(0,-1)] 
-             dx,dy=(0,0)
-             if (ec == k_c and er > k_r):
-              dx,dy=rook_dir[-4]
-             elif (ec == k_c and er < k_r):
-               dx,dy=rook_dir[-3]
-             elif (er == k_r and ec > k_c):
-               dx,dy=rook_dir[-2]    
-             elif (er == k_r and ec < k_c):
-               dx,dy=rook_dir[-1]
-             else:
-               continue 
-           
-             for_limit=0
-           
-           
-             if(er == k_r):
-               for_limit=abs(k_c-ec)
-             else:
-               for_limit=abs(k_r-er)
-             b_r,b_c=k_r,k_c
-             for i in range(for_limit):
-               b_r+=dx
-               b_c+=dy
-               block_sqrs.append((b_r,b_c))
-  return block_sqrs
- king_escape=[]
- def can_king_escape(k_r,k_c):
-  king_color='white' if move.is_white(move.unparse_move(k_r,k_c)) else 'black'
-  move.king_escape=[]
-  rook_blocks_coor=move.rook_blocks(k_r,k_c)
-  queen_blocks_coor=move.queen_blocks(k_r,k_c)
-  bishop_blocks_coor=move.bishop_blocks(k_r,k_c)
-  block_sqrs=[*queen_blocks_coor,*bishop_blocks_coor,*rook_blocks_coor]
-  unacceptable=[*block_sqrs,(k_r,k_c)]
-  friendly_occupied = []
-  for piece, positions in move.positions[king_color].items():
-      if piece == 'king':
-          friendly_occupied.append(positions)
-      else:
-          friendly_occupied.extend(positions)
-  count=0
-  for r in range(8):
-    for c in range(8): 
-       if(not (r,c)  in friendly_occupied and (not (r,c) in unacceptable) and move.king_legal(k_r,k_c,r,c) ):
-         move.king_escape.append((r,c))
-         count+=1
-  if(count>0) :      
-   return True 
-  return False   
- attack_or_blocking_pieces=[] 
- def can_friend_block(k_r,k_c):
-  king_color='white' if move.is_white(move.unparse_move(k_r,k_c)) else 'black'
-  move.attack_or_blocking_pieces=[]
-
-  if(len(move.king_checkers[king_color])>1):
-    return False
-  rook_blocks_coor=move.rook_blocks(k_r,k_c)
-  queen_blocks_coor=move.queen_blocks(k_r,k_c)
-  bishop_blocks_coor=move.bishop_blocks(k_r,k_c)
-  block_sqrs=[*queen_blocks_coor,*bishop_blocks_coor,*rook_blocks_coor]
-  for piece,position in move.positions[king_color].items():
-      if piece=='king':
-        continue
-      for r,c in block_sqrs:
-            for fr,fc in position:
-              if(piece=='queen'):
-               if(move.queen_legal(fr,fc,r,c)):
-                move.attack_or_blocking_pieces.append((fr,fc))
-                return True 
-              if(piece=='pawns'):
-                if(move.pawn_legal(fr,fc,r,c)):
-                  move.attack_or_blocking_pieces.append((fr,fc))
-                  return True
-              elif(piece=='rooks'):
-                if(move.rook_legal(fr,fc,r,c)):
-                  move.attack_or_blocking_pieces.append((fr,fc))
-                  return True
-
-              elif(piece=='knights'):
-                if(move.knight_legal(fr,fc,r,c)):
-                      move.attack_or_blocking_pieces.append((fr,fc))
-                      return True
-
-              elif(piece=='bishops'):
-                if(move.bishop_legal(fr,fc,r,c)):
-                        move.attack_or_blocking_pieces.append((fr,fc))
-                        return True
-  return False
- def friend_attack(k_r,k_c):
-  
-  king_color='white' if move.is_white(move.unparse_move(k_r,k_c)) else 'black'
-  move.attack_or_blocking_pieces=[]
-
-  for piece,position in move.positions[king_color].items():
-    for e_piece,r,c in move.king_checkers[king_color]:
-     if  piece=='king':
-      fr,fc=position
-      
-      if(piece=='king'):
-       if(move.king_legal(fr,fc,r,c)): 
-        move.attack_or_blocking_pieces.append((fr,fc))  
-        return True 
-     else:
-      for fr,fc in position:
-       if(piece=='pawns'):
-        if(move.pawn_legal(fr,fc,r,c)):
-         move.attack_or_blocking_pieces.append((fr,fc))
-         return True
-       elif(piece=='rooks'):
-        if(move.rook_legal(fr,fc,r,c)):
-           move.attack_or_blocking_pieces.append((fr,fc))
-           return True
-     
-       elif(piece=='knights'):
-        if(move.knight_legal(fr,fc,r,c)):
-          move.attack_or_blocking_pieces.append((fr,fc))
-          return True
-     
-       elif(piece=='bishops'):
-        if(move.bishop_legal(fr,fc,r,c)):
-         move.attack_or_blocking_pieces.append((fr,fc))
-         return True
-       elif(piece=='queen'):
-         if(move.queen_legal(fr,fc,r,c)):
-          move.attack_or_blocking_pieces.append((fr,fc))
-          return True
-  return False
+ 
 
  moves_log= {
      "from":[]
@@ -686,7 +488,7 @@ class move:
    move.board_snapshots.append({"board":deepcopy(move.positions),"turn":color,"enpassent":move.enpassent_corr(ispawnmove),"castling": {
         "white": move.castling_rights("white"),   
         "black": move.castling_rights("black"),
-    },"checkers":deepcopy(move.king_checkers),"attackers/blockers":deepcopy(move.attack_or_blocking_pieces)  })
+    },"checkers":deepcopy(move.king_checkers)})
    
  nextindex=None
  def is_three_fold():
@@ -721,117 +523,107 @@ class move:
 
        
 
- def is_stalemate(kr,kc):
-   color='black' if move.is_black(move.unparse_move(kr,kc)) else 'white'
-   friends=[(kr,kc)]
-
-   for piece,position in move.positions[color].items():
-     if(piece=='king'):
-       continue
-     else:
-      for r,c in position:
-       friends.append((r,c))
-   for r,c in friends:
-    for row in range(8):
-     for col in range (8):
-      if((move.is_pawn(move.unparse_move(r,c)) and move.pawn_legal(r,c,row,col)) or (move.is_rook(move.unparse_move(r,c)) and move.rook_legal(r,c,row,col)) or  (move.is_king(move.unparse_move(r,c)) and move.king_legal(r,c,row,col)) or (move.is_bishop(move.unparse_move(r,c)) and move.bishop_legal(r,c,row,col)) or move.is_knight(move.unparse_move(r,c)) and move.knight_legal(r,c,row,col) or (move.is_queen(move.unparse_move(r,c)) and move.queen_legal(r,c,row,col))):
-
-       return False
-   return True   
+ def stalemate(kr,kc):
+  color='white'if(move.is_white(move.unparse_move(kr,kc))) else 'black'
+  legal_moves=generate_legal_moves(color)
+  if(len(legal_moves)==0) and not (move.is_checked(kr,kc)):
+    return True
        
 
- def is_checkmated(k_r,k_c):
-  king_color="white"if(move.is_white(move.unparse_move(k_r,k_c))) else "black"
-  if not move.is_checked(k_r,k_c):
+ def is_checkmated(kr,kc):
+    color='white'if(move.is_white(move.unparse_move(kr,kc))) else 'black'
+    legal_moves=generate_legal_moves(color)
+    if(len(legal_moves)==0) and (move.is_checked(kr,kc)):
+      return True
+    else:
       return False
-  if(len(move.king_checkers[king_color])>1):
-    return not move.can_king_escape(k_r,k_c)
-  if(not (move.friend_attack(k_r,k_c) or move.can_friend_block(k_r,k_c) or move.can_king_escape(k_r,k_c))):
-    return True
-  return False
 # castling/enpassent
  def is_board_end(r,c):
   return r==0 or r==7
  king_moved=True
  pawn_choices=['b','n','q','r']
- def move_piece(pos_sq,target_sq,to_promote=None):
+
+ def move_piece(pos_sq,target_sq,to_promote=None,verified=False):
   pos=move.parse_move(pos_sq)
   r,c=pos
+  color=None
   if(not move.is_empty2(r,c) and pos_sq!=target_sq and not move.is_king(target_sq)):
-   target=move.parse_move(target_sq)
-   tr,tc=target
-   legal_move = [
-    move.is_pawn(pos_sq) and move.pawn_legal(r,c,tr,tc),
-    move.is_bishop(pos_sq) and move.bishop_legal(r,c,tr,tc),
-    move.is_rook(pos_sq) and move.rook_legal(r,c,tr,tc),
-    move.is_knight(pos_sq) and move.knight_legal(r,c,tr,tc),
-    move.is_queen(pos_sq) and move.queen_legal(r,c,tr,tc),
-    move.is_king(pos_sq) and move.king_legal(r,c,tr,tc)]
-   for x in legal_move:
-    if(x):
-     k_r,k_c=move.index_my_king(r,c)
+         color='white'if(move.is_white(pos_sq)) else 'black'
 
-     if(not move.is_checkmated(k_r,k_c) and not move.is_stalemate(k_r,k_c)):
-      if((move.is_checked(k_r,k_c) and (tr,tc) in move.attack_or_blocking_pieces) or (move.is_checked(k_r,k_c) and (tr,tc) in move.king_escape ) or not move.is_checked(k_r,k_c)):
-       if(move.is_king(move.unparse_move(r,c)) and move.is_rook(move.unparse_move(tr,tc)) and not move.is_checked(k_r,k_c) and not move.can_be_checked(r,c,tr,tc) ):
-        k_dy,r_dy=(2,-1) if(tc>c) else(-2,1)
-        move.update_place(r,c,r,c+k_dy)
-        move.update_place(tr,tc,r,c+k_dy+r_dy)
-        real_board[r][c+k_dy]=real_board[r][c]
-        real_board[r][c+k_dy+r_dy]=real_board[tr][tc]
-        real_board[r][c]='.'
-        real_board[tr][tc]='.'
-      
-        return True
-       elif(move.is_pawn(move.unparse_move(r,c)) and move.is_white(move.unparse_move(r,c)) and tr==r-1 and(move.is_pawn(move.unparse_move(tr+1,tc)) and not move.is_friend(r,c,tr+1,tc)) and move.is_empty2(tr,tc) and move.moves_log["to"][-1]==(tr+1,tc) and move.moves_log["from"][-1][0]==1 and abs(move.moves_log["from"][-1][0]-move.moves_log["to"][-1][0])==2 and c==tc-1):
-        move.update_place(r,c,tr,tc)
-        real_board[tr][tc]=real_board[r][c]
-        real_board[tr+1][tc]='.'
-        real_board[r][c]='.'
-        return True
-       elif(move.is_pawn(move.unparse_move(r,c)) and move.is_white(move.unparse_move(r,c)) and tr==r-1 and(move.is_pawn(move.unparse_move(tr+1,tc)) and not move.is_friend(r,c,tr+1,tc)) and move.is_empty2(tr,tc) and move.moves_log["to"][-1]==(tr+1,tc) and move.moves_log["from"][-1][0]==1 and abs(move.moves_log["from"][-1][0]-move.moves_log["to"][-1][0])==2 and c==tc+1):
-        move.update_place(r,c,tr,tc)
-        real_board[tr][tc]=real_board[r][c]
-        real_board[tr+1][tc]='.'
-        real_board[r][c]='.'
-        return True
-       elif(move.is_pawn(move.unparse_move(r,c)) and move.is_black(move.unparse_move(r,c)) and tr==r+1 and (move.is_pawn(move.unparse_move(tr-1,tc)) and not move.is_friend(r,c,tr-1,tc)) and move.is_empty2(tr,tc) and move.moves_log["to"][-1]==(tr-1,tc) and move.moves_log["from"][-1][0]==6 and abs(move.moves_log["from"][-1][0]-move.moves_log["to"][-1][0])==2 and c==tc+1):
-        move.update_place(r,c,tr,tc)
-        real_board[tr][tc]=real_board[r][c]
-        real_board[tr-1][tc]='.'
-        real_board[r][c]='.'
-        return True
-       elif(move.is_pawn(move.unparse_move(r,c)) and move.is_black(move.unparse_move(r,c)) and tr==r+1 and(move.is_pawn(move.unparse_move(tr-1,tc)) and not move.is_friend(r,c,tr-1,tc)) and move.is_empty2(tr,tc) and move.moves_log["to"][-1]==(tr-1,tc) and move.moves_log["from"][-1][0]==6 and abs(move.moves_log["from"][-1][0]-move.moves_log["to"][-1][0])==2 and c==tc-1):
-        move.update_place(r,c,tr,tc)
-        real_board[tr][tc]=real_board[r][c]
-        real_board[tr-1][tc]='.'
-        real_board[r][c]='.'
-        return True
-       else:
-        if(move.is_pawn(pos_sq) and move.is_board_end(tr,tc) and to_promote not in (1,2,3,4)):
-         return False
-        move.update_place(r,c,tr,tc)
-        real_board[tr][tc]=real_board[r][c]
-        real_board[r][c]='.'
-        pivot=None
-       if(move.is_pawn(move.unparse_move(tr,tc)) and move.is_board_end(tr,tc)):
-         if(to_promote in (1,2,3,4)):
-           pivot=move.pawn_choices[to_promote-1]
-           is_black_pawn = move.is_black(move.unparse_move(tr,tc))
-           real_board[tr][tc] = pivot.lower() if is_black_pawn else pivot.upper()
-           color = 'black' if is_black_pawn else 'white'
-           idx = move.positions[color]['pawns'].index((tr,tc))
-           del move.positions[color]['pawns'][idx]
-           promo_key={'b':'bishops','n':'knights','q':'queen','r':'rooks'}[pivot]
-           move.positions[color][promo_key].append((tr,tc))
+         target=move.parse_move(target_sq)
+         tr,tc=target
+   
+         k_r,k_c=move.index_my_king(r,c)
+         legal_moves=[]
+         is_pieces={"king":move.is_king(pos_sq),"bishops":move.is_bishop(pos_sq),"knights":move.is_knight(pos_sq),"queen":move.is_queen(pos_sq),"pawns":move.is_pawn(pos_sq),"rooks":move.is_rook(pos_sq)}
+         piece=None
+         for key,value in is_pieces.items():
+             if(value):
+              piece=key
+              break
+         if not verified:
+           legal_moves = generate_legal_moves(color)
+           if not ((piece,(r,c),(tr,tc)) in legal_moves):
+             print('game ended')
+             return False
+         if(move.is_king(move.unparse_move(r,c)) and move.is_rook(move.unparse_move(tr,tc))):
+          k_dy,r_dy=(2,-1) if(tc>c) else(-2,1)
+          move.update_place(r,c,r,c+k_dy)
+          move.update_place(tr,tc,r,c+k_dy+r_dy)
+          real_board[r][c+k_dy]=real_board[r][c]
+          real_board[r][c+k_dy+r_dy]=real_board[tr][tc]
+          real_board[r][c]='.'
+          real_board[tr][tc]='.'
+        
+          return True
+         elif(move.is_pawn(move.unparse_move(r,c)) and move.is_white(move.unparse_move(r,c)) and tr==r-1 and(move.is_pawn(move.unparse_move(tr+1,tc)) and not move.is_friend(r,c,tr+1,tc)) and move.is_empty2(tr,tc) and move.moves_log["to"][-1]==(tr+1,tc) and move.moves_log["from"][-1][0]==1 and abs(move.moves_log["from"][-1][0]-move.moves_log["to"][-1][0])==2 and c==tc-1):
+          move.update_place(r,c,tr,tc)
+          real_board[tr][tc]=real_board[r][c]
+          real_board[tr+1][tc]='.'
+          real_board[r][c]='.'
+          return True
+         elif(move.is_pawn(move.unparse_move(r,c)) and move.is_white(move.unparse_move(r,c)) and tr==r-1 and(move.is_pawn(move.unparse_move(tr+1,tc)) and not move.is_friend(r,c,tr+1,tc)) and move.is_empty2(tr,tc) and move.moves_log["to"][-1]==(tr+1,tc) and move.moves_log["from"][-1][0]==1 and abs(move.moves_log["from"][-1][0]-move.moves_log["to"][-1][0])==2 and c==tc+1):
+          move.update_place(r,c,tr,tc)
+          real_board[tr][tc]=real_board[r][c]
+          real_board[tr+1][tc]='.'
+          real_board[r][c]='.'
+          return True
+         elif(move.is_pawn(move.unparse_move(r,c)) and move.is_black(move.unparse_move(r,c)) and tr==r+1 and (move.is_pawn(move.unparse_move(tr-1,tc)) and not move.is_friend(r,c,tr-1,tc)) and move.is_empty2(tr,tc) and move.moves_log["to"][-1]==(tr-1,tc) and move.moves_log["from"][-1][0]==6 and abs(move.moves_log["from"][-1][0]-move.moves_log["to"][-1][0])==2 and c==tc+1):
+          move.update_place(r,c,tr,tc)
+          real_board[tr][tc]=real_board[r][c]
+          real_board[tr-1][tc]='.'
+          real_board[r][c]='.'
+          return True
+         elif(move.is_pawn(move.unparse_move(r,c)) and move.is_black(move.unparse_move(r,c)) and tr==r+1 and(move.is_pawn(move.unparse_move(tr-1,tc)) and not move.is_friend(r,c,tr-1,tc)) and move.is_empty2(tr,tc) and move.moves_log["to"][-1]==(tr-1,tc) and move.moves_log["from"][-1][0]==6 and abs(move.moves_log["from"][-1][0]-move.moves_log["to"][-1][0])==2 and c==tc-1):
+          move.update_place(r,c,tr,tc)
+          real_board[tr][tc]=real_board[r][c]
+          real_board[tr-1][tc]='.'
+          real_board[r][c]='.'
+          return True
          else:
+          if(move.is_pawn(pos_sq) and move.is_board_end(tr,tc) and to_promote not in (1,2,3,4)):
            return False
-       return True
-     else:
-        print("can't move there")
-        return False
-   print('game ended')
-   return False
+          move.update_place(r,c,tr,tc)
+          real_board[tr][tc]=real_board[r][c]
+          real_board[r][c]='.'
+          pivot=None
+         if(move.is_pawn(move.unparse_move(tr,tc)) and move.is_board_end(tr,tc)):
+           if(to_promote in (1,2,3,4)):
+             pivot=move.pawn_choices[to_promote-1]
+             is_black_pawn = move.is_black(move.unparse_move(tr,tc))
+             real_board[tr][tc] = pivot.lower() if is_black_pawn else pivot.upper()
+             color = 'black' if is_black_pawn else 'white'
+             idx = move.positions[color]['pawns'].index((tr,tc))
+             del move.positions[color]['pawns'][idx]
+             promo_key={'b':'bishops','n':'knights','q':'queen','r':'rooks'}[pivot]
+             move.positions[color][promo_key].append((tr,tc))
+           else:
+             return False
+         return True
+       
+  
+
+
  def reset_board(board):
   board=real_board.copy()
  def can_be_checked(k_r,k_c,r,c):
@@ -860,7 +652,7 @@ class move:
   return checked
 board_snapshots=[{"board":deepcopy(move.positions),"turn":"white","enpassent":None,"castling": {
         "white": move.castling_rights("white"),   
-         "black": move.castling_rights("black")},"checkers":deepcopy(move.king_checkers),"attackers/blockers":deepcopy(move.attack_or_blocking_pieces)
+         "black": move.castling_rights("black")},"checkers":deepcopy(move.king_checkers)
 }]   
 def can_be_checked2(r,c,tr,tc):
  if(not move.is_king(move.unparse_move(r,c))):
@@ -939,7 +731,6 @@ def unmove():
     for j in range(8):
       real_board[i][j]='.'
   move.king_checkers=deepcopy(move.board_snapshots[-2]['checkers'])
-  move.attack_or_blocking_pieces=deepcopy(move.board_snapshots[-2]['attackers/blockers'])
   move.positions=deepcopy(move.board_snapshots[-2]['board'])
   b_mapping={'knights':'n','king':'k','queen':'q','bishops':'b'  ,'rooks':'r','pawns':'p'}
   mapping={'knights':'N','king':'K','queen':'Q','bishops':'B'  ,'rooks':'R','pawns':'P'}
@@ -966,7 +757,8 @@ def unmove():
    
  else:
    return
-def minimax():
+def minimax(color,depth):
+  
   
   pass
      
@@ -975,19 +767,5 @@ def minimax():
 def print_board(board):
     for row in board:
         print(' '.join(row))
-move.move_piece('a2','a3')
-move.move_piece('a3','a4')
-move.move_piece('a4','a5')
-print_board(real_board)
+###testinnggg
 
-move.move_piece('b7','b5')
-print_board(real_board)
-move.move_piece('a5','b6')
-print_board(real_board)
-unmove()
-unmove()
-unmove()
-unmove()
-unmove()
-
-print_board(real_board)
