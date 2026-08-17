@@ -718,13 +718,13 @@ def material_count(color,positions):
      for r,c in position:
        material+=value.get(piece)
   return material
-def evaluate(color, positions):
+def evaluate( positions):
     white_material = material_count('white', positions)
     black_material = material_count('black', positions)
 
     score = white_material - black_material
 
-    return score if color == 'white' else -score
+    return score 
 def unmove():
  if(len(move.board_snapshots)>1):
   for i in range(8):
@@ -757,10 +757,48 @@ def unmove():
    
  else:
    return
+
+import math
+pos_inf = math.inf          # Positive infinity
+neg_inf = -math.inf         # Negative infinity 
 def minimax(color,depth):
+  moves=generate_legal_moves(color)
+  kr,kc=move.positions[color]['king']
+  if len(moves) == 0:
+    if move.is_checked(kr, kc):
+        if(color=='white'):
+         return -1000
+        else:
+          return 1000   # checkmate — return immediately
+    else:
+        return 0                                   # stalemate — return
+
   
+  if(depth==0):
+    return evaluate(move.positions)
+
+  if(color=='white'):
+   maxeval=neg_inf
+   for piece,(r,c),(tr,tc) in moves:
+    move.move_piece(move.unparse_move(r,c),move.unparse_move(tr,tc),verified=True)
+
+    eval=minimax('black',depth-1)
+
+    maxeval=max(eval,maxeval)
+    unmove()
+   return maxeval
+   
+  else:
+    mineval=pos_inf
+    for piece,(r,c),(tr,tc) in moves:
+       move.move_piece(move.unparse_move(r,c),move.unparse_move(tr,tc),verified=True)
+       eval=minimax('white',depth-1)
+       mineval=min(eval,mineval)
+       unmove() 
+    return mineval
+    
+
   
-  pass
      
      
           
@@ -768,4 +806,47 @@ def print_board(board):
     for row in board:
         print(' '.join(row))
 ###testinnggg
+def best_move(color,depth):
+  moves=generate_legal_moves(color)
+  bestmove=None
+
+  if(color=='white'):
+   maxeval=neg_inf
+   for piece,(r,c),(tr,tc) in moves:
+    move.move_piece(move.unparse_move(r,c),move.unparse_move(tr,tc),verified=True)
+
+    eval=minimax('black',depth-1)
+
+    unmove()
+    if eval> maxeval:
+     maxeval=eval
+     bestmove=[piece,(r,c),(tr,tc),maxeval]
+   return bestmove
+   
+  else:
+    mineval=pos_inf
+    for piece,(r,c),(tr,tc) in moves:
+       move.move_piece(move.unparse_move(r,c),move.unparse_move(tr,tc),verified=True)
+       eval=minimax('white',depth-1)
+       unmove() 
+       if eval< mineval:
+        mineval=eval
+        bestmove=[piece,(r,c),(tr,tc),mineval]
+    return bestmove
+
+
+
+
+
+
+
+
+
+"""move.move_piece('a2','a4')
+move.move_piece('b7','b5')
+x=minimax('black',depth=2)
+y=minimax('white',depth=2)
+print(x)
+print(y)"""
+########################################
 
