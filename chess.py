@@ -281,9 +281,9 @@ class move:
          dx,dy=king_dirs[2]
         else:
          return
-       elif (target_r == pos_r and target_c > pos_c and move.is_rook2(target_r,target_c) and move.is_empty2(pos_r,pos_c+1) and  move.is_empty2(pos_r,pos_c+2) and not move.is_checked(pos_r,pos_c) and not move.can_be_checked(pos_r,pos_c,target_r,target_c) and not move.rook_or_king_moved(target_r,target_c,color)):
+       elif (target_r == pos_r and target_c > pos_c and move.is_rook2(target_r,target_c) and move.is_empty2(pos_r,pos_c+1) and  move.is_empty2(pos_r,pos_c+2) and not move.is_checked(pos_r,pos_c) and not move.can_be_checked(pos_r,pos_c,target_r,target_c,castlingflag=True) and not move.rook_or_king_moved(target_r,target_c,color)):
         dx,dy=(0,2)
-       elif (target_r == pos_r and target_c < pos_c and move.is_rook2(target_r,target_c) and move.is_empty2(pos_r,pos_c-1) and  move.is_empty2(pos_r,pos_c-2) and not move.is_checked(pos_r,pos_c) and not move.can_be_checked(pos_r,pos_c,target_r,target_c) and not move.rook_or_king_moved(target_r,target_c,color)):
+       elif (target_r == pos_r and target_c < pos_c and move.is_rook2(target_r,target_c) and move.is_empty2(pos_r,pos_c-1) and  move.is_empty2(pos_r,pos_c-2) and not move.is_checked(pos_r,pos_c) and not move.can_be_checked(pos_r,pos_c,target_r,target_c,castlingflag=True) and not move.rook_or_king_moved(target_r,target_c,color)):
         dx,dy=(0,-2)
        elif (target_c == pos_c and target_r > pos_r and target_r-pos_r==1):
         dx,dy=king_dirs[-4]
@@ -390,37 +390,63 @@ class move:
   
   letter_config="black"if move.is_black2(my_r,my_c) else "white"
   return move.positions[letter_config]['king']
+ 
  king_checkers={'white':[],'black':[]}
- def is_checked(k_r,k_c):
-  
-  color="black"if  move.is_black2(k_r,k_c) else "white"
-  enemy_color="white"if move.is_black2(k_r,k_c) else "black"
-  move.king_checkers[color]=[]
 
-  for piece,position in move.positions[enemy_color].items():
-      if piece=='king':
+ def is_checked(kr,kc):
+    king_dirs=[(1,1),(1,-1),(-1,1),(-1,-1),(1,0),(-1,0),(0,1),(0,-1)] 
+    KNIGHT_DELTAS = {(-2,1),(-2,-1),(2,1),(2,-1),(-1,2),(1,2),(-1,-2),(1,-2)}
+    pawn_dirs=[(-1,0),(-1,1),(-1,-1),(-2,0)]
+    
+    if(move.is_black2(kr,kc)):
+      pawn_dirs=[(-dx,-dy) for dx,dy in pawn_dirs]
+    enemy=[]
+    color='black' if move.is_black2(kr,kc) else 'white'
+    move.king_checkers[color]=[]
+    for dx,dy in king_dirs:
+          new_r,new_c=(kr,kc)
+          while((0<=new_r+dx<=7 and 0<=new_c+dy<=7) ):
+            next_r, next_c = new_r+dx, new_c+dy
+            if(move.is_empty2(next_r,next_c)):
+              new_r, new_c = next_r, next_c
+            elif(move.is_friend(kr,kc,next_r,next_c)):
+              break
+            else:
+              piece=get_piece(next_r,next_c)
+              enemy.append((piece,(next_r,next_c)))
+              break
+            
+    for dx,dy in KNIGHT_DELTAS:
+          new_r,new_c=(kr,kc)
+          if((0<=new_r+dx<=7 and 0<=new_c+dy<=7) ):
+            new_r,new_c=(new_r+dx,new_c+dy)
+            if(not move.is_empty2(new_r,new_c) and not move.is_friend(kr,kc,new_r,new_c) and move.is_knight2(new_r,new_c)):
+              
+              move.king_checkers[color].append(('knights',(new_r,new_c)))
+              break  
+    for dx,dy in pawn_dirs:
+              new_r,new_c=(kr,kc)
+              if((0<=new_r+dx<=7 and 0<=new_c+dy<=7) ):
+                new_r,new_c=(new_r+dx,new_c+dy)
+                if(not move.is_empty2(new_r,new_c) and not move.is_friend(kr,kc,new_r,new_c) and move.is_pawn2(new_r,new_c)):
+                  
+                  move.king_checkers[color].append(('pawns',(new_r,new_c)))  
+                  break        
+    for piece,(r,c) in enemy:
+      if(piece=='rooks'):
+       if  kr==r or kc==c:
+        move.king_checkers[color].append((piece,(r,c)))
+      if(piece=='bishops'): 
+        if abs(kr-r)==abs(kc-c):
+         move.king_checkers[color].append((piece,(r,c)))
+      if(piece=='queen'):
+        if (kr==r or kc==c) or abs(kr-r)==abs(kc-c):
+          move.king_checkers[color].append((piece,(r,c)))
+      else:
         continue
-      for r,c in position:
-        if(piece=='queen'):
-           if(move.queen_legal(r,c,k_r,k_c)):
-               move.king_checkers[color].append((piece,r,c))
-        elif(piece=='pawns'):
-          if(move.pawn_legal(r,c,k_r,k_c)):
-           move.king_checkers[color].append((piece,r,c))
-        elif(piece=='rooks'):
-          if(move.rook_legal(r,c,k_r,k_c)):
-           move.king_checkers[color].append((piece,r,c))
-        elif(piece=='knights'):
-          if(move.knight_legal(r,c,k_r,k_c)):
-           move.king_checkers[color].append((piece,r,c))
-        else:
-          if(move.bishop_legal(r,c,k_r,k_c)):
-           move.king_checkers[color].append((piece,r,c))
 
-  if(len(move.king_checkers[color])>0):
-    return True
-  else:
-    return False
+    return len(move.king_checkers[color] )>0
+
        
  
 
@@ -610,7 +636,7 @@ class move:
            legal_moves = generate_legal_moves(color)
            if not ((piece,(r,c),(tr,tc)) in legal_moves):
              return False
-         if(move.is_king2(r,c) and move.is_rook2(tr,tc)):
+         if(move.is_king2(r,c) and move.is_friend(tr,tc) and move.is_rook2(tr,tc)):
           k_dy,r_dy=(2,-1) if(tc>c) else(-2,1)
           move.update_place(r,c,tr,tc,castlingflag=True)
           real_board[r][c+k_dy]=real_board[r][c]
@@ -669,14 +695,14 @@ class move:
 
  def reset_board(board):
   board=real_board.copy()
- def can_be_checked(k_r,k_c,r,c):
+ def can_be_checked(k_r,k_c,r,c,iscastling=False):
   if not (0<=r<=7 and 0<=c<=7 and 0<=k_r<=7 and 0<=k_c<=7):
       return False
   saved_board = [row[:] for row in real_board]
   color = 'black' if move.is_black2(k_r,k_c) else 'white'
   saved_checkers = move.king_checkers[color][:]
 
-  if(move.is_rook2(r,c)): 
+  if(iscastling): 
       k_dy,r_dy=(2,-1) if(c>k_c) else(-2,1)
       real_board[k_r][k_c+k_dy]=real_board[k_r][k_c]
       real_board[k_r][k_c+k_dy+r_dy]=real_board[r][c]
@@ -697,6 +723,7 @@ board_snapshots=[{"board":deepcopy(move.positions),"turn":"white","enpassent":No
          "black": move.castling_rights("black")},"checkers":deepcopy(move.king_checkers)
 }]   
 def can_be_checked2(r,c,tr,tc):
+ checked = False
  if(not move.is_king2(r,c)):
   (k_r,k_c)=move.index_my_king(r,c)
   saved_board = [row[:] for row in real_board]
@@ -710,46 +737,125 @@ def can_be_checked2(r,c,tr,tc):
   move.king_checkers[color] = saved_checkers
  return checked
 
-
+def get_piece(old_r,old_c):
+  is_pieces={"king":move.is_king2(old_r,old_c),"bishops":move.is_bishop2(old_r,old_c),"knights":move.is_knight2(old_r,old_c),"queen":move.is_queen2(old_r,old_c),"pawns":move.is_pawn2(old_r,old_c),"rooks":move.is_rook2(old_r,old_c)}
+  for key,value in is_pieces.items():
+    if(value):
+      return key
+    
+def diagonal_check(piece,r,c):
+  bish_silding_dirs=[(1,1),(1,-1),(-1,1),(-1,-1)]
+  legal=[] 
   
+  for dx,dy in bish_silding_dirs:
+    new_r,new_c=(r,c) 
+    while(0<=new_r+dx<=7 and 0<=new_c+dy<=7 ):
+      check= not move.is_friend(r,c,new_r+dx,new_c+dy) and (move.bishop_legal(r,c,new_r+dx,new_c+dy) if(piece=='rooks') else move.queen_legal(r,c,new_r+dx,new_c+dy) )
+      if(check and not can_be_checked2(r,c,new_r+dx,new_c+dy)):
+
+        new_r+=dx
+        new_c+=dy
+        if(piece=='bishops'):
+         legal.append(('bishops',(r,c),(new_r,new_c)))
+        else:
+          legal.append(('queen',(r,c),(new_r,new_c)))
+
+
+
+
+      else:
+        break
+  return legal        
+    
+def row_col_check(piece,r,c):
+  rook_dir=[(1,0),(-1,0),(0,1),(0,-1)] 
+  legal=[] 
+    
+  for dx,dy in rook_dir:
+      new_r,new_c=(r,c) 
+      while(0<=new_r+dx<=7 and 0<=new_c+dy<=7 ):
+        check= not move.is_friend(r,c,new_r+dx,new_c+dy) and (move.rook_legal(r,c,new_r+dx,new_c+dy) if(piece=='rooks') else move.queen_legal(r,c,new_r+dx,new_c+dy) )
+        if(check and not can_be_checked2(r,c,new_r+dx,new_c+dy)):
+  
+          new_r+=dx
+          new_c+=dy
+          if(piece=='rooks'):
+           legal.append(('rooks',(r,c),(new_r,new_c)))
+          else:
+            legal.append(('queen',(r,c),(new_r,new_c)))
+            
+        else:
+          break 
+  return legal         
+
+def knight_check(r,c):
+  KNIGHT_DELTAS = {(-2,1),(-2,-1),(2,1),(2,-1),(-1,2),(1,2),(-1,-2),(1,-2)}
+  legal=[]
+  for dx,dy in KNIGHT_DELTAS:
+      new_r,new_c=(r,c)
+      if((0<=new_r+dx<=7 and 0<=new_c+dy<=7)  and move.knight_legal(r,c,new_r+dx,new_c+dy) and not can_be_checked2(r,c,new_r+dx,new_c+dy) ):
+       new_r,new_c=(new_r+dx,new_c+dy)
+       legal.append(('knights',(r,c),(new_r,new_c)))
+      else:
+        continue
+  return legal
+def king_check(r,c):
+  king_dirs=[(1,1),(1,-1),(-1,1),(-1,-1),(1,0),(-1,0),(0,1),(0,-1)] 
+
+  legal=[]
+  for dx,dy in king_dirs:
+        new_r,new_c=(r,c)
+        if((0<=new_r+dx<=7 and 0<=new_c+dy<=7)  and move.king_legal(r,c,new_r+dx,new_c+dy)):
+         new_r,new_c=(new_r+dx,new_c+dy)
+         legal.append(('king',(r,c),(new_r,new_c)))
+        else:
+          continue
+  return legal
+def pawn_check(r,c):
+    pawn_dirs=[(-1,0),(-1,1),(-1,-1),(-2,0)]
+    legal=[]
+    if(move.is_black2(r,c)):
+      pawn_dirs=[(-dx,-dy) for dx,dy in pawn_dirs]
+    for dx,dy in pawn_dirs:
+            new_r,new_c=(r,c)
+            if((0<=new_r+dx<=7 and 0<=new_c+dy<=7)  and move.pawn_legal(r,c,new_r+dx,new_c+dy) and not can_be_checked2(r,c,new_r+dx,new_c+dy) ):
+             new_r,new_c=(new_r+dx,new_c+dy)
+             legal.append(('pawns',(r,c),(new_r,new_c)))
+            else:
+              continue  
+    return legal  
 
 def generate_legal_moves(color):
-   kr,kc=move.positions[color]['king']
-   friends=[(kr,kc)]
    legal_moves=[]
+   legal_moves_ordered=[]
+   value={'pawns':1,'knights':3,'bishops': 3,'rooks':5,'queen':9,'king':1000}
+
    for piece,position in move.positions[color].items():
      if(piece=='king'):
-       continue
+       (r,c)=position
+       legal_moves.extend(king_check(r,c))
      else:
       for r,c in position:
-       friends.append((r,c))
-   for r,c in friends:
-    for row in range(8):
-     for col in range (8):
-       if((move.is_pawn2(r,c) and move.pawn_legal(r,c,row,col))): 
-        if(not can_be_checked2(r,c,row,col)):
-         legal_moves.append(('pawns',(r,c),(row,col)))
-       elif((move.is_rook2(r,c) and move.rook_legal(r,c,row,col))):
-        if(not can_be_checked2(r,c,row,col)):
-         legal_moves.append(('rooks',(r,c),(row,col)))
-       elif (move.is_king2(r,c)):
-        if(move.king_legal(r,c,row,col)):      
-          legal_moves.append(('king',(r,c),(row,col)))
-
-       elif(move.is_bishop2(r,c) and move.bishop_legal(r,c,row,col)):
-        if(not can_be_checked2(r,c,row,col)):
-         legal_moves.append(('bishops',(r,c),(row,col)))
-    
-       elif(move.is_knight2(r,c) and move.knight_legal(r,c,row,col)) :
-        if(not can_be_checked2(r,c,row,col)):
-         legal_moves.append(('knights',(r,c),(row,col)))
-
-
-       elif(move.is_queen2(r,c) and move.queen_legal(r,c,row,col)):
-        if(not can_be_checked2(r,c,row,col)):
-         legal_moves.append(('queen',(r,c),(row,col)))
-   return legal_moves
-      
+       if(piece=='rooks' ):
+          legal_moves.extend(row_col_check(piece,r,c))
+       elif(  piece=='bishops'):
+         legal_moves.extend(diagonal_check(piece,r,c))
+       elif(piece=='queen'):
+        legal_moves.extend(diagonal_check(piece,r,c))
+        legal_moves.extend(row_col_check(piece,r,c))
+       elif(piece=='knights'):
+        legal_moves.extend(knight_check(r,c))
+       elif(piece=='pawns'):
+         legal_moves.extend(pawn_check(r,c))
+   captures = []
+   quiet = []
+   for piece,(r,c),(tr,tc) in legal_moves:
+     if not move.is_empty2(tr,tc):
+        captures.append((piece,(r,c),(tr,tc)))
+     else:
+        quiet.append((piece,(r,c),(tr,tc)))
+     captures.sort(key=lambda m: value[get_piece(*m[2])] - value[m[0]], reverse=True)
+   return captures + quiet
 def material_count(color,positions):
   material=0
   value={'pawns':1,'knights':3,'bishops': 3,'rooks':5,'queen':9}
@@ -956,8 +1062,12 @@ neg_inf = -math.inf         # Negative infinity
      
           
 def print_board(board):
-    for row in board:
-        print(' '.join(row))
+    files = '  a b c d e f g h'
+    print(files)
+    for i, row in enumerate(board):
+        rank = 8 - i
+        print(f"{rank} {' '.join(row)} {rank}")
+    print(files)
 ###testinnggg
 def minimax(color,depth,alpha,beta):
   moves=generate_legal_moves(color)
@@ -1056,7 +1166,69 @@ def best_move(color,depth):
          mineval=eval
          bestmove=[piece,(r,c),(tr,tc),mineval]
     return bestmove
-  
+
+def game_loop(player_color='white', engine_depth=3):
+    engine_color = 'black' if player_color == 'white' else 'white'
+
+    while True:
+        print_board(real_board)
+
+        turn_color = player_color if len(move.moves_log['from']) % 2 == 0 else engine_color
+        # Note: assumes white always moves first and colors alternate strictly.
+        # If player_color == 'black', engine moves first below instead.
+
+        # --- Game-over check for whoever is about to move ---
+        current_color = player_color if (len(move.moves_log['from']) % 2 == 0) == (player_color == 'white') else engine_color
+        kr, kc = move.positions[current_color]['king']
+        legal = generate_legal_moves(current_color)
+        if len(legal) == 0:
+            if move.is_checked(kr, kc):
+                winner = engine_color if current_color == player_color else player_color
+                print(f"Checkmate — {winner} wins.")
+            else:
+                print("Stalemate — draw.")
+            break
+
+        if current_color == player_color:
+            pos = input(f'Your move ({player_color}), from square: ').strip()
+            target = input('to square: ').strip()
+
+            if pos.lower() in ('quit', 'resign'):
+                print("You resigned.")
+                break
+
+            try:
+                fr, fc = move.parse_move(pos)
+                tr, tc = move.parse_move(target)
+            except (IndexError, ValueError):
+                print("Invalid square format, try again (e.g. e2).")
+                continue
+
+            promo = None
+            if move.is_pawn2(fr, fc) and move.is_board_end(tr, tc):
+                raw = input('Promote to (1=bishop 2=knight 3=queen 4=rook): ').strip()
+                if raw not in ('1', '2', '3', '4'):
+                    print("Invalid promotion choice, try again.")
+                    continue
+                promo = int(raw)
+
+            success = move.move_piece(pos, target, to_promote=promo, verified=False)
+            if not success:
+                print('Illegal move, try again.')
+                continue
+
+        else:
+            print("Engine is thinking...")
+            result = best_move(engine_color, engine_depth)
+            if result is None:
+                print("Engine has no legal moves.")
+                break
+            piece, (r, c), (tr, tc), score = result
+            from_sq, to_sq = move.unparse_move(r, c), move.unparse_move(tr, tc)
+            print(f"Engine plays {piece} {from_sq} -> {to_sq} (eval={score})")
+            move.move_piece(from_sq, to_sq, verified=True)
+
+game_loop(player_color='white', engine_depth=3)
 
 
 
@@ -1088,12 +1260,14 @@ move.move_piece('f1','c4')
 move.move_piece('g8','f6')
 move.move_piece('d1','f3')
 move.move_piece('f6','e4')
-#
+
 import time
 start = time.time()
-result = best_move('white', 2)"""
-#print(result, time.time() - start)
-def gameloop():
+result = best_move('white', 3)
+print(result, time.time() - start)"""
+"""import cProfile
+cProfile.run("best_move('white', 3)", sort='cumulative')"""
+"""def gameloop():
   while(True):
     print_board(real_board)
     pos=input('white pos:')
@@ -1109,141 +1283,9 @@ def gameloop():
     ai_pos=move.unparse_move(r,c)
     ai_tr=move.unparse_move(r1,c1)
     try :move.move_piece(ai_pos,ai_tr)
-    except:print('illegal move')
-
-gameloop()
-"""import time
-start = time.time()
-result = best_move('white',2)
-print(result, time.time() - start)"""
-"""import cProfile
-cProfile.run("best_move('white', 2)", sort='cumulative')"""
-#if(move.is_king(move.unparse_move(r,c)) and move.is_rook(move.unparse_move(tr,tc))):
-# if(move.is_king(move.unparse_move(r,c)) and move.is_rook(move.unparse_move(tr,tc))):
-""" k_dy,r_dy=(2,-1) if(tc>c) else(-2,1)
-          move.update_place(r,c,r,c+k_dy)
-          move.update_place(tr,tc,r,c+k_dy+r_dy)
-          real_board[r][c+k_dy]=real_board[r][c]
-          real_board[r][c+k_dy+r_dy]=real_board[tr][tc]
-          real_board[r][c]='.'
-          real_board[tr][tc]='.'"""
-#######
-
-def diagonal_check(piece,r,c):
-  bish_silding_dirs=[(1,1),(1,-1),(-1,1),(-1,-1)]
-  legal=[] 
-  
-  for dx,dy in bish_silding_dirs:
-    new_r,new_c=(r,c) 
-    while(0<=new_r+dx<=7 and 0<=new_c+dy<=7 ):
-      check= not move.is_friend(r,c,new_r+dx,new_c+dy) and (move.bishop_legal(r,c,new_r+dx,new_c+dy) if(piece=='rooks') else move.queen_legal(r,c,new_r+dx,new_c+dy) )
-      if(check and not can_be_checked2(r,c,new_r+dx,new_c+dy)):
-
-        new_r+=dx
-        new_c+=dy
-        if(piece=='bishops'):
-         legal.append(('bishops',(r,c),(new_r,new_c)))
-        else:
-          legal.append(('queen',(r,c),(new_r,new_c)))
+    except:print('illegal move')"""
 
 
 
 
-      else:
-        break
-  return legal        
-    
-def row_col_check(piece,r,c):
-  rook_dir=[(1,0),(-1,0),(0,1),(0,-1)] 
-  legal=[] 
-    
-  for dx,dy in rook_dir:
-      new_r,new_c=(r,c) 
-      while(0<=new_r+dx<=7 and 0<=new_c+dy<=7 ):
-        check= not move.is_friend(r,c,new_r+dx,new_c+dy) and (move.rook_legal(r,c,new_r+dx,new_c+dy) if(piece=='rooks') else move.queen_legal(r,c,new_r+dx,new_c+dy) )
-        if(check and not can_be_checked2(r,c,new_r+dx,new_c+dy)):
-  
-          new_r+=dx
-          new_c+=dy
-          if(piece=='rooks'):
-           legal.append(('rooks',(r,c),(new_r,new_c)))
-          else:
-            legal.append(('queen',(r,c),(new_r,new_c)))
-            
-        else:
-          break 
-  return legal         
-def knight_check(r,c):
-  KNIGHT_DELTAS = {(-2,1),(-2,-1),(2,1),(2,-1),(-1,2),(1,2),(-1,-2),(1,-2)}
-  legal=[]
-  for dx,dy in KNIGHT_DELTAS:
-      new_r,new_c=(r,c)
-      if((0<=new_r+dx<=7 and 0<=new_c+dy<=7)  and move.knight_legal(r,c,new_r+dx,new_c+dy) and not can_be_checked2(r,c,new_r+dx,new_c+dy) ):
-       new_r,new_c=(new_r+dx,new_c+dy)
-       legal.append(('knights',(r,c),(new_r,new_c)))
-      else:
-        continue
-  return legal
-def king_check(r,c):
-  king_dirs=[(1,1),(1,-1),(-1,1),(-1,-1),(1,0),(-1,0),(0,1),(0,-1)] 
 
-  legal=[]
-  for dx,dy in king_dirs:
-        new_r,new_c=(r,c)
-        if((0<=new_r+dx<=7 and 0<=new_c+dy<=7)  and move.king_legal(r,c,new_r+dx,new_c+dy)):
-         new_r,new_c=(new_r+dx,new_c+dy)
-         legal.append(('king',(r,c),(new_r,new_c)))
-        else:
-          continue
-  return legal
-def pawn_check(r,c):
-    pawn_dirs=[(-1,0),(-1,1),(-1,-1),(-2,0)]
-    legal=[]
-    if(move.is_black2(r,c)):
-      pawn_dirs=[(-dx,-dy) for dx,dy in pawn_dirs]
-    for dx,dy in pawn_dirs:
-            new_r,new_c=(r,c)
-            if((0<=new_r+dx<=7 and 0<=new_c+dy<=7)  and move.pawn_legal(r,c,new_r+dx,new_c+dy) and not can_be_checked2(r,c,new_r+dx,new_c+dy) ):
-             new_r,new_c=(new_r+dx,new_c+dy)
-             legal.append(('pawns',(r,c),(new_r,new_c)))
-            else:
-              continue  
-    return legal
-
-
-
-def generate_legal_moves2(color):
-   legal_moves=[]
-   for piece,position in move.positions[color].items():
-     if(piece=='king'):
-       (r,c)=position
-       legal_moves.extend(king_check(r,c))
-     else:
-      for r,c in position:
-       if(piece=='rooks' ):
-          legal_moves.extend(row_col_check(piece,r,c))
-       elif(  piece=='bishops'):
-         legal_moves.extend(diagonal_check(piece,r,c))
-       elif(piece=='queen'):
-        legal_moves.extend(diagonal_check(piece,r,c))
-        legal_moves.extend(row_col_check(piece,r,c))
-       elif(piece=='knights'):
-        legal_moves.extend(knight_check(r,c))
-       elif(piece=='pawns'):
-         legal_moves.extend(pawn_check(r,c))
-  
-   return legal_moves
-      
-def ischecked(kr,kc):
-    king_dirs=[(1,1),(1,-1),(-1,1),(-1,-1),(1,0),(-1,0),(0,1),(0,-1)] 
-    color='black' if move.is_black2(kr,kc) else 'white'
-    checked=False
-    for dx,dy in king_dirs:
-          new_r,new_c=(kr,kc)
-          while((0<=new_r+dx<=7 and 0<=new_c+dy<=7) ):
-            if(move.is_empty2(new_r+dx,new_c+dy) or not move.is_friend(kr,+dx,new_c+dy)):
-             new_r,new_c=(new_r+dx,new_c+dy)
-            if(not move.is_empty2(new_r,new_c) and not move.is_friend(kr,kc,new_r,new_c)):
-              move.king_checkers[color].append((new_r,new_c))
-              checked=True
-    return checked       
