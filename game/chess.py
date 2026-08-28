@@ -843,7 +843,7 @@ class Game:
          captures.append((piece,(r,c),(tr,tc)))
       else:
          quiet.append((piece,(r,c),(tr,tc)))
-      captures.sort(key=lambda m: value[self.get_piece(*m[2])] - value[m[0]], reverse=True)
+    captures.sort(key=lambda m: value[self.get_piece(*m[2])] - value[m[0]], reverse=True)
     return captures + quiet
   def material_count(self,color,positions):
    material=0
@@ -1089,3 +1089,97 @@ class Game:
           mineval=eval
           bestmove=[piece,(r,c),(tr,tc),mineval]
      return bestmove
+
+  def translate_click(self,r,c):
+    if(self.is_empty2(r,c)):
+      return None
+    color='black' if self.is_black2(r,c) else 'white'
+    piece=self.get_piece(r,c)
+    w_mapping={'king':'♔','queen'	:'♕','rooks':'♖','bishops':'♗','knights':	'♘','pawns':'♙'}
+    b_mapping={'king':'♚','queen':'♛'	,'rooks':'♜','bishops':	'♝'	,'knights':'♞','pawns':'♟'}
+    if(color=='black'):
+      return b_mapping.get(piece)
+    else:
+      return w_mapping.get(piece)  
+  def translate_board(self):
+    board = [[None for j in range(8)] for i in range(8)]
+    for i in range(8):
+      for j in range(8):
+        board[i][j]=self.translate_click(i,j)  
+    return board    
+  
+  def is_game_end(self, color):
+    kr, kc = self.positions[color]['king']
+
+    if self.is_checkmated(kr, kc):
+        return "checkmate"
+    if self.stalemate(kr, kc):
+        return "stalemate"
+    if self.isfifty_moves_draw():
+        return "draw"
+    if self.is_three_fold():
+        return "draw"
+    return "ongoing"
+  
+  def to_state_dict(self):
+     
+
+     return {
+        "positions": self.positions,
+        "moves_log": 
+             self.moves_log
+       
+    }
+  @classmethod
+  def from_state_dict(cls, state):
+    game = cls()  # runs __init__, gives us a fresh Game with default board/positions
+
+    def restore_positions(pos):
+        out = {}
+        for color, pieces in pos.items():
+            out[color] = {}
+            for piece, value in pieces.items():
+                if piece == "king":
+                    # king was stored as a list, e.g. [7, 4] -> tuple (7, 4)
+                    out[color][piece] = tuple(value)
+                else:
+                    # everything else was a list of lists -> list of tuples
+                    out[color][piece] = [tuple(p) for p in value]
+        return out
+
+    game.positions = restore_positions(state["positions"])
+
+    game.moves_log["from"] = [tuple(p) for p in state["moves_log"]["from"]]
+    game.moves_log["to"] = [tuple(p) for p in state["moves_log"]["to"]]
+    game.moves_log["pawn"] = state["moves_log"]["pawn"]
+    game.moves_log["capture"] = state["moves_log"]["capture"]
+    game.moves_log["pawn/capture"] = state["moves_log"]["pawn/capture"]
+    game.moves_log["castling"] = state["moves_log"]["castling"]
+
+    # rebuild real_board from the restored positions, since real_board itself
+    # isn't stored — it's derived
+    game.real_board = [['.' for _ in range(8)] for _ in range(8)]
+    mapping = {'knights': 'N', 'king': 'K', 'queen': 'Q', 'bishops': 'B', 'rooks': 'R', 'pawns': 'P'}
+    b_mapping = {k: v.lower() for k, v in mapping.items()}
+
+    for piece, value in game.positions['white'].items():
+        letter = mapping[piece]
+        if piece == 'king':
+            r, c = value
+            game.real_board[r][c] = letter
+        else:
+            for r, c in value:
+                game.real_board[r][c] = letter
+
+    for piece, value in game.positions['black'].items():
+        letter = b_mapping[piece]
+        if piece == 'king':
+            r, c = value
+            game.real_board[r][c] = letter
+        else:
+            for r, c in value:
+                game.real_board[r][c] = letter
+
+    return game
+     
+
