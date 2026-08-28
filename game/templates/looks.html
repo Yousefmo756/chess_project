@@ -1,3 +1,5 @@
+{% load static %}
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -47,93 +49,14 @@
             outline: 3px solid yellow;
             outline-offset: -3px;
         }
+        
     </style>
-    <script src="movement.js"></script>
-</head>
+<script src="{% static 'movement.js' %}" defer></script></head>
 
 <body>
 
     <div class="chessboard">
 
-        <!-- Row 8 -->
-        <div class="square dark">♜</div>
-        <div class="square light">♞</div>
-        <div class="square dark">♝</div>
-        <div class="square light">♛</div>
-        <div class="square dark">♚</div>
-        <div class="square light">♝</div>
-        <div class="square dark">♞</div>
-        <div class="square light">♜</div>
-
-        <!-- Row 7 -->
-        <div class="square light">♟</div>
-        <div class="square dark">♟</div>
-        <div class="square light">♟</div>
-        <div class="square dark">♟</div>
-        <div class="square light">♟</div>
-        <div class="square dark">♟</div>
-        <div class="square light">♟</div>
-        <div class="square dark">♟</div>
-
-        <!-- Row 6 -->
-        <div class="square dark"></div>
-        <div class="square light"></div>
-        <div class="square dark"></div>
-        <div class="square light"></div>
-        <div class="square dark"></div>
-        <div class="square light"></div>
-        <div class="square dark"></div>
-        <div class="square light"></div>
-
-        <!-- Row 5 -->
-        <div class="square light"></div>
-        <div class="square dark"></div>
-        <div class="square light"></div>
-        <div class="square dark"></div>
-        <div class="square light"></div>
-        <div class="square dark"></div>
-        <div class="square light"></div>
-        <div class="square dark"></div>
-
-        <!-- Row 4 -->
-        <div class="square dark"></div>
-        <div class="square light"></div>
-        <div class="square dark"></div>
-        <div class="square light"></div>
-        <div class="square dark"></div>
-        <div class="square light"></div>
-        <div class="square dark"></div>
-        <div class="square light"></div>
-
-        <!-- Row 3 -->
-        <div class="square light"></div>
-        <div class="square dark"></div>
-        <div class="square light"></div>
-        <div class="square dark"></div>
-        <div class="square light"></div>
-        <div class="square dark"></div>
-        <div class="square light"></div>
-        <div class="square dark"></div>
-
-        <!-- Row 2 -->
-        <div class="square dark">♙</div>
-        <div class="square light">♙</div>
-        <div class="square dark">♙</div>
-        <div class="square light">♙</div>
-        <div class="square dark">♙</div>
-        <div class="square light">♙</div>
-        <div class="square dark">♙</div>
-        <div class="square light">♙</div>
-
-        <!-- Row 1 -->
-        <div class="square light">♖</div>
-        <div class="square dark">♘</div>
-        <div class="square light">♗</div>
-        <div class="square dark">♕</div>
-        <div class="square light">♔</div>
-        <div class="square dark">♗</div>
-        <div class="square light">♘</div>
-        <div class="square dark">♖</div>
 
     </div>
 

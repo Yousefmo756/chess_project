@@ -4,10 +4,13 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from game.chess import Game 
 from game.models import ChessGame
+from django.views.decorators.csrf import csrf_exempt
+
 # Create your views here.
 def game(request):
     return render(request,'looks.html')      
 
+@csrf_exempt
 
 def create_game(request):
     game = Game()  # your chess engine object
@@ -21,7 +24,6 @@ def create_game(request):
     )
     obj.save()  
     return JsonResponse({"id": obj.id, "board": game.translate_board(), "turn": "white"})
-from django.views.decorators.csrf import csrf_exempt
 @csrf_exempt
 def make_move(request, game_id):
     obj = ChessGame.objects.get(id=game_id)
