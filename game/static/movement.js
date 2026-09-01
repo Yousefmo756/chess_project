@@ -1,12 +1,15 @@
 let game_id=null
-async function create_game(){
- response= await fetch("/game/new/",{method:'POST'})
- data= await response.json()
- game_id=data['id']
- board=data['board']
- localStorage.setItem('game_id', game_id);  // remember for next page load
- render_board(board)
-
+async function create_game(vsAi) {
+  const response = await fetch("/game/new/", {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ vs_ai: vsAi })
+  });
+  const data = await response.json();
+  game_id = data['id'];
+  board = data['board'];
+  localStorage.setItem('game_id', game_id);
+  render_board(board);
 }
 function unparse_move(pos_r,pos_c){
    file=['a','b','c','d','e','f','g','h']
@@ -29,12 +32,11 @@ t_c=null
    return [row_no,col]}
 async function isPromotionMove(pos_r,pos_c, t_r,t_c) {
   // landing on rank 8 (row 0) or rank 1 (row 7)
-   response=await fetch(`${game_id}/board`)
+   response=await fetch(`/game/${game_id}/board`)
    data=await response.json()
    board=data['board']
-   if(board[pos_r][pos_c]=='p'){return  t_r === 7}
-  if(board[pos_r][pos_c]=='P'){
-  return  t_r === 0;}
+   if(board[pos_r][pos_c]=='♟'){return t_r === 7}
+if(board[pos_r][pos_c]=='♙'){return t_r === 0;}
   else{return false;}
 }
 
@@ -123,10 +125,9 @@ async function load_game(id) {
 
 // This is the part that actually runs when the page loads:
 const savedId = localStorage.getItem('game_id');
-
-
 if (savedId) {
   load_game(savedId);
 } else {
-  create_game();
+  const wantsAi = confirm("Play against the computer? (Cancel = play a friend)");
+  create_game(wantsAi);
 }

@@ -640,25 +640,37 @@ class Game:
            self.real_board[tr][tc]=self.real_board[r][c]
            self.real_board[tr+1][tc]='.'
            self.real_board[r][c]='.'
+           if (tr+1, tc) in self.positions['black']['pawns']:
+               self.positions['black']['pawns'].remove((tr+1, tc))
+               self.dead_pieces['black'].append('pawns')
            return True
           elif(self.is_pawn2(r,c) and self.is_white2(r,c) and tr==r-1 and(self.is_pawn2(tr+1,tc) and not self.is_friend(r,c,tr+1,tc)) and self.is_empty2(tr,tc) and self.moves_log["to"][-1]==(tr+1,tc) and self.moves_log["from"][-1][0]==1 and abs(self.moves_log["from"][-1][0]-self.moves_log["to"][-1][0])==2 and c==tc+1):
-           self.update_place(r,c,tr,tc)
-           self.real_board[tr][tc]=self.real_board[r][c]
-           self.real_board[tr+1][tc]='.'
-           self.real_board[r][c]='.'
-           return True
+               self.update_place(r,c,tr,tc)
+               self.real_board[tr][tc]=self.real_board[r][c]
+               self.real_board[tr+1][tc]='.'
+               self.real_board[r][c]='.'
+               if (tr+1, tc) in self.positions['black']['pawns']:
+                   self.positions['black']['pawns'].remove((tr+1, tc))
+                   self.dead_pieces['black'].append('pawns')
+               return True
           elif(self.is_pawn2(r,c) and self.is_black2(r,c) and tr==r+1 and (self.is_pawn2(tr-1,tc) and not self.is_friend(r,c,tr-1,tc)) and self.is_empty2(tr,tc) and self.moves_log["to"][-1]==(tr-1,tc) and self.moves_log["from"][-1][0]==6 and abs(self.moves_log["from"][-1][0]-self.moves_log["to"][-1][0])==2 and c==tc+1):
-           self.update_place(r,c,tr,tc)
-           self.real_board[tr][tc]=self.real_board[r][c]
-           self.real_board[tr-1][tc]='.'
-           self.real_board[r][c]='.'
-           return True
+               self.update_place(r,c,tr,tc)
+               self.real_board[tr][tc]=self.real_board[r][c]
+               self.real_board[tr-1][tc]='.'
+               self.real_board[r][c]='.'
+               if (tr-1, tc) in self.positions['white']['pawns']:
+                   self.positions['white']['pawns'].remove((tr-1, tc))
+                   self.dead_pieces['white'].append('pawns')
+               return True
           elif(self.is_pawn2(r,c) and self.is_black2(r,c) and tr==r+1 and (self.is_pawn2(tr-1,tc) and not self.is_friend(r,c,tr-1,tc)) and self.is_empty2(tr,tc) and self.moves_log["to"][-1]==(tr-1,tc) and self.moves_log["from"][-1][0]==6 and abs(self.moves_log["from"][-1][0]-self.moves_log["to"][-1][0])==2 and c==tc-1):
-           self.update_place(r,c,tr,tc)
-           self.real_board[tr][tc]=self.real_board[r][c]
-           self.real_board[tr-1][tc]='.'
-           self.real_board[r][c]='.'
-           return True
+               self.update_place(r,c,tr,tc)
+               self.real_board[tr][tc]=self.real_board[r][c]
+               self.real_board[tr-1][tc]='.'
+               self.real_board[r][c]='.'
+               if (tr-1, tc) in self.positions['white']['pawns']:
+                   self.positions['white']['pawns'].remove((tr-1, tc))
+                   self.dead_pieces['white'].append('pawns')
+               return True
           else:
            if(self.is_pawn2(r,c) and self.is_board_end(tr,tc) and to_promote not in (1,2,3,4)):
             return False
@@ -1011,7 +1023,7 @@ class Game:
   neg_inf = -math.inf         # Negative infinity 
  
      
- 
+
    
       
       
@@ -1038,7 +1050,8 @@ class Game:
    if(color=='white'):
     maxeval=self.neg_inf
     for piece,(r,c),(tr,tc) in moves:
-     self.move_piece(self.unparse_move(r,c),self.unparse_move(tr,tc),verified=True)
+     promo = 3 if (self.is_pawn2(r,c) and self.is_board_end(tr,tc)) else None
+     self.move_piece(self.unparse_move(r,c), self.unparse_move(tr,tc), to_promote=promo, verified=True)
      eval=self.minimax('black',depth-1,alpha,beta)
      self.unmove()
      alpha=max(alpha,eval) 
@@ -1050,7 +1063,8 @@ class Game:
    else:
      mineval=self.pos_inf
      for piece,(r,c),(tr,tc) in moves:
-        self.move_piece(self.unparse_move(r,c),self.unparse_move(tr,tc),verified=True)
+        promo = 3 if (self.is_pawn2(r,c) and self.is_board_end(tr,tc)) else None
+        self.move_piece(self.unparse_move(r,c), self.unparse_move(tr,tc), to_promote=promo, verified=True)
         eval=self.minimax('white',depth-1,alpha,beta)
         self.unmove()
         beta=min(beta,eval) 
@@ -1069,7 +1083,8 @@ class Game:
    if(color=='white'):
     maxeval=self.neg_inf
     for piece,(r,c),(tr,tc) in moves:
-     self.move_piece(self.unparse_move(r,c),self.unparse_move(tr,tc),verified=True)
+     promo = 3 if (self.is_pawn2(r,c) and self.is_board_end(tr,tc)) else None
+     self.move_piece(self.unparse_move(r,c), self.unparse_move(tr,tc), to_promote=promo, verified=True)
      eval = self.minimax('black', depth-1,self.neg_inf,self.pos_inf)
      self.unmove()
  
@@ -1081,7 +1096,8 @@ class Game:
    else:
      mineval=self.pos_inf
      for piece,(r,c),(tr,tc) in moves:
-         self.move_piece(self.unparse_move(r,c),self.unparse_move(tr,tc),verified=True)
+         promo = 3 if (self.is_pawn2(r,c) and self.is_board_end(tr,tc)) else None
+         self.move_piece(self.unparse_move(r,c), self.unparse_move(tr,tc), to_promote=promo, verified=True)
          eval = self.minimax('white', depth-1,self.neg_inf,self.pos_inf)
          self.unmove()
        
