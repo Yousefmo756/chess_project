@@ -403,7 +403,7 @@ class Game:
   def is_checked(self,kr,kc):
      king_dirs=[(1,1),(1,-1),(-1,1),(-1,-1),(1,0),(-1,0),(0,1),(0,-1)] 
      KNIGHT_DELTAS = {(-2,1),(-2,-1),(2,1),(2,-1),(-1,2),(1,2),(-1,-2),(1,-2)}
-     pawn_dirs=[(-1,0),(-1,1),(-1,-1),(-2,0)]
+     pawn_dirs=[(-1,1),(-1,-1)]
      
      if(self.is_black2(kr,kc)):
        pawn_dirs=[(-dx,-dy) for dx,dy in pawn_dirs]
