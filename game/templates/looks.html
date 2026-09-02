@@ -9,10 +9,77 @@
     <title>Chess</title>
 
     <style>
+.promotion-picker {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    background: #333;
+    border: 3px solid #111;
+    border-radius: 8px;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
+.promo-choice {
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 50px;
+    cursor: pointer;
+    background: #f0d9b5;
+    border-right: 1px solid #111;
+}
+
+.promo-choice:last-child {
+    border-right: none;
+}
+
+.promo-choice:hover {
+    background: yellow;
+}
+    .board-wrapper {
+    display: flex;
+}
+
+.ranks {
+    display: grid;
+    grid-template-rows: repeat(8, 1fr);
+    height: 640px;
+    width: 24px;
+}
+
+.ranks span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ddd;
+    font-size: 14px;
+}
+
+.files {
+    display: grid;
+    grid-template-columns: 24px repeat(8, 1fr);
+    width: 664px; /* 24px ranks column + 640px board */
+}
+
+.files span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ddd;
+    font-size: 14px;
+    height: 24px;
+}
+
         body {
             margin: 0;
             min-height: 100vh;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             background: #222;
@@ -49,16 +116,53 @@
             outline: 3px solid yellow;
             outline-offset: -3px;
         }
+        .status-banner {
+    padding: 12px 24px;
+    margin-bottom: 16px;
+    border-radius: 8px;
+    font-size: 20px;
+    font-weight: bold;
+    text-align: center;
+    color: white;
+}
+
+.status-banner.ongoing {
+    background-color: #3a7d44;
+}
+
+.status-banner.check {
+    background-color: #d9822b;
+}
+
+.status-banner.ended {
+    background-color: #b03a3a;
+}
         
     </style>
 <script src="{% static 'movement.js' %}" defer></script></head>
 
 <body>
-<button onclick="create_game()">new game</button>
-    <div class="chessboard">
+<div id="promotion-picker" class="promotion-picker" style="display: none;">
+  <div class="promo-choice" data-value="3">♛</div>
+  <div class="promo-choice" data-value="4">♜</div>
+  <div class="promo-choice" data-value="1">♝</div>
+  <div class="promo-choice" data-value="2">♞</div>
+</div>
+<div id="status-banner" class="status-banner" style="display: none;"></div>
+<button onclick="create_game(confirm('Play against the computer?'))" style="border: none;color: #b03a3a;">new game</button>
 
-
-    </div>
+<div class="board-wrapper">
+  <div class="ranks">
+    <span>8</span><span>7</span><span>6</span><span>5</span>
+    <span>4</span><span>3</span><span>2</span><span>1</span>
+  </div>
+  <div class="chessboard"></div>
+</div>
+<div class="files">
+  <span></span> <!-- empty corner to align under the ranks column -->
+  <span>a</span><span>b</span><span>c</span><span>d</span>
+  <span>e</span><span>f</span><span>g</span><span>h</span>
+</div>
 
 </body>
 </html>

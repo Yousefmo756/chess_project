@@ -1,4 +1,5 @@
 let game_id=null
+let board=null
 async function create_game(vsAi) {
   const response = await fetch("/game/new/", {
     method: 'POST',
@@ -10,6 +11,8 @@ async function create_game(vsAi) {
   board = data['board'];
   localStorage.setItem('game_id', game_id);
   render_board(board);
+    updateStatusBanner('ongoing', 'white'); // fresh game, always ongoing
+
 }
 function unparse_move(pos_r,pos_c){
    file=['a','b','c','d','e','f','g','h']
@@ -30,21 +33,30 @@ t_c=null
    row_no=8-Number(square[1])
    col=file.index(col_letter)
    return [row_no,col]}
-async function isPromotionMove(pos_r,pos_c, t_r,t_c) {
+ function isPromotionMove(pos_r,pos_c, t_r,t_c) {
   // landing on rank 8 (row 0) or rank 1 (row 7)
-   response=await fetch(`/game/${game_id}/board`)
-   data=await response.json()
-   board=data['board']
+   //response=await fetch(`/game/${game_id}/board`)
+   //data=await response.json()
+   //board=data['board']
    if(board[pos_r][pos_c]=='♟'){return t_r === 7}
 if(board[pos_r][pos_c]=='♙'){return t_r === 0;}
   else{return false;}
 }
 
 function askPromotionChoice() {
-  // returns a Promise that resolves to 1/2/3/4, matching pawn_choices = ['b','n','q','r']
   return new Promise((resolve) => {
-    const choice = prompt("Promote to: (1) Bishop, (2) Knight, (3) Queen, (4) Rook", "3");
-    resolve(Number(choice) || 3); // default to queen if invalid input
+    const picker = document.getElementById('promotion-picker');
+    picker.style.display = 'flex';
+
+    const choices = picker.querySelectorAll('.promo-choice');
+    function handleClick(event) {
+      const value = Number(event.currentTarget.dataset.value);
+      picker.style.display = 'none';
+      choices.forEach(c => c.removeEventListener('click', handleClick));
+      resolve(value);
+    }
+
+    choices.forEach(c => c.addEventListener('click', handleClick));
   });
 }
 
@@ -61,7 +73,9 @@ async function makemove(pos_sq, t_sq, promotion = null) {
         return;
     }
 
-    render_board(data['board']);
+    board = data['board'];
+    render_board(board);
+    updateStatusBanner(data['status'], data['turn']);
 }
 
 
@@ -105,7 +119,7 @@ square.addEventListener('drop', async (event) => {
   const t_sq = unparse_move(t_r, t_c);
 
   let promotion = null;
-  if (await isPromotionMove(pos_r,pos_c, t_r,t_c)) {
+  if ( isPromotionMove(pos_r,pos_c, t_r,t_c)) {
     promotion = await askPromotionChoice();
   }
 
@@ -114,17 +128,46 @@ square.addEventListener('drop', async (event) => {
 });
 }
 
+
+function updateStatusBanner(status, turn) {
+  const banner = document.getElementById('status-banner');
+
+  if (status === 'ongoing') {
+    banner.style.display = 'none';
+    return;
+  }
+
+  banner.style.display = 'block';
+
+  if (status === 'checkmate') {
+    const winner = turn === 'white' ? 'Black' : 'White'; // turn is whoever's stuck, so the OTHER side won
+    banner.innerText = `Checkmate! ${winner} wins.`;
+    banner.className = 'status-banner ended';
+  } else if (status === 'stalemate') {
+    banner.innerText = 'Stalemate — draw.';
+    banner.className = 'status-banner ended';
+  } else if (status === 'draw') {
+    banner.innerText = 'Draw.';
+    banner.className = 'status-banner ended';
+  }
+}
+
 // ... all your function definitions (create_game, load_game, makemove, render_board) above ...
 
 async function load_game(id) {
   const response = await fetch(`/game/${id}/board/`);
   const data = await response.json();
   game_id = id;
+  board=data['board']
   render_board(data['board']);
+    updateStatusBanner(data['status'], data['turn']);
+
 }
 
 // This is the part that actually runs when the page loads:
 const savedId = localStorage.getItem('game_id');
+//const savedId = 42;
+
 if (savedId) {
   load_game(savedId);
 } else {

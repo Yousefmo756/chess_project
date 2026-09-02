@@ -32,7 +32,7 @@ def create_game(request):
 def make_move(request, game_id):
     obj = ChessGame.objects.get(id=game_id)
     if obj.status in ['checkmate', 'stalemate', 'draw']:
-        return JsonResponse({"error": "game ended"}, status=400)
+        return JsonResponse({"error": f"{obj.status}"}, status=400)
 
     game = Game.from_state_dict({"positions": obj.positions, "moves_log": obj.moves_log})
 
