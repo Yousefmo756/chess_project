@@ -1,7 +1,9 @@
 from copy import deepcopy
 import math
+import time
 
-
+class time_out(Exception):
+  pass
 class Game:
   
  
@@ -741,26 +743,29 @@ class Game:
        return key
      
   def diagonal_check(self,piece,r,c):
+
    bish_silding_dirs=[(1,1),(1,-1),(-1,1),(-1,-1)]
    legal=[] 
    
    for dx,dy in bish_silding_dirs:
      new_r,new_c=(r,c) 
      while(0<=new_r+dx<=7 and 0<=new_c+dy<=7 ):
-       check= not self.is_friend(r,c,new_r+dx,new_c+dy) and (self.bishop_legal(r,c,new_r+dx,new_c+dy) if(piece=='rooks') else self.queen_legal(r,c,new_r+dx,new_c+dy) )
-       if(check and not self.can_be_checked2(r,c,new_r+dx,new_c+dy)):
- 
-         new_r+=dx
-         new_c+=dy
+       target_r,target_c=new_r+dx,new_c+dy
+       is_legal_shape = not self.is_friend(r,c,target_r,target_c) and (self.bishop_legal(r,c,target_r,target_c) if(piece=='rooks') else self.queen_legal(r,c,target_r,target_c))
+       
+       if not is_legal_shape:
+         break
+
+       if not self.can_be_checked2(r,c,target_r,target_c):
          if(piece=='bishops'):
-          legal.append(('bishops',(r,c),(new_r,new_c)))
+           legal.append(('bishops',(r,c),(target_r,target_c)))
          else:
-           legal.append(('queen',(r,c),(new_r,new_c)))
- 
- 
- 
- 
-       else:
+           legal.append(('queen',(r,c),(target_r,target_c)))
+
+       was_capture = not self.is_empty2(target_r,target_c)
+       new_r,new_c=target_r,target_c
+
+       if was_capture:
          break
    return legal        
      
@@ -771,19 +776,24 @@ class Game:
    for dx,dy in rook_dir:
        new_r,new_c=(r,c) 
        while(0<=new_r+dx<=7 and 0<=new_c+dy<=7 ):
-         check= not self.is_friend(r,c,new_r+dx,new_c+dy) and (self.rook_legal(r,c,new_r+dx,new_c+dy) if(piece=='rooks') else self.queen_legal(r,c,new_r+dx,new_c+dy) )
-         if(check and not self.can_be_checked2(r,c,new_r+dx,new_c+dy)):
-   
-           new_r+=dx
-           new_c+=dy
+         target_r,target_c=new_r+dx,new_c+dy
+         is_legal_shape = not self.is_friend(r,c,target_r,target_c) and (self.rook_legal(r,c,target_r,target_c) if(piece=='rooks') else self.queen_legal(r,c,target_r,target_c))
+
+         if not is_legal_shape:
+           break
+
+         if not self.can_be_checked2(r,c,target_r,target_c):
            if(piece=='rooks'):
-            legal.append(('rooks',(r,c),(new_r,new_c)))
+             legal.append(('rooks',(r,c),(target_r,target_c)))
            else:
-             legal.append(('queen',(r,c),(new_r,new_c)))
-             
-         else:
-           break 
-   return legal         
+             legal.append(('queen',(r,c),(target_r,target_c)))
+
+         was_capture = not self.is_empty2(target_r,target_c)
+         new_r,new_c=target_r,target_c
+
+         if was_capture:
+           break
+   return legal
  
   def knight_check(self,r,c):
    KNIGHT_DELTAS = {(-2,1),(-2,-1),(2,1),(2,-1),(-1,2),(1,2),(-1,-2),(1,-2)}
@@ -826,7 +836,7 @@ class Game:
                continue  
      return legal  
  
-  def generate_legal_moves(self,color):
+  def generate_legal_moves(self,color,capture=False):
     legal_moves=[]
     legal_moves_ordered=[]
     value={'pawns':1,'knights':3,'bishops': 3,'rooks':5,'queen':9,'king':1000}
@@ -856,6 +866,8 @@ class Game:
       else:
          quiet.append((piece,(r,c),(tr,tc)))
     captures.sort(key=lambda m: value[self.get_piece(*m[2])] - value[m[0]], reverse=True)
+    if(capture==True):
+      return captures
     return captures + quiet
   def material_count(self,color,positions):
    material=0
@@ -867,11 +879,21 @@ class Game:
       for r,c in position:
         material+=value.get(piece)
    return material
+  def pawn_penalty(self, pawns):
+    files = [c for r, c in pawns]
+    penalty = 0
+    for f in set(files):
+        count = files.count(f)
+        if count > 1:
+            penalty += 12 * (count - 1)
+    return penalty
+  def isendgame(self,white_material,black_material):
+    return white_material+black_material <20
   def evaluate(self,positions):
      white_material = self.material_count('white', positions)
      black_material = self.material_count('black', positions)
  
-     score = white_material - black_material
+     score = (white_material - black_material)*100
      black_pos=0
      white_pos=0
      pawn = [
@@ -929,7 +951,7 @@ class Game:
          [-20,-10,-10, -5, -5,-10,-10,-20]
      ]
      
-     king = [
+     king_middle_game = [
          [-30,-40,-40,-50,-50,-40,-40,-30],
          [-30,-40,-40,-50,-50,-40,-40,-30],
          [-30,-40,-40,-50,-50,-40,-40,-30],
@@ -939,7 +961,15 @@ class Game:
          [20, 20,  0,  0,  0,  0, 20, 20],
          [20, 30, 10,  0,  0, 10, 30, 20]
      ]
- 
+     king_end_game=[ [-50,-40,-30,-20,-20,-30,-40,-50],
+         [-30,-20,-10,  0,  0,-10,-20,-30],
+         [-30,-10, 20, 30, 30, 20,-10,-30],
+         [-30,-10, 30, 40, 40, 30,-10,-30],
+         [-30,-10, 30, 40, 40, 30,-10,-30],
+         [-30,-10, 20, 30, 30, 20,-10,-30],
+         [-30,-30,  0,  0,  0,  0,-30,-30],
+         [-50,-30,-30,-30,-30,-30,-30,-50] ]
+     king=king_end_game if(self.isendgame(white_material,black_material)) else king_middle_game
      for piece,pos in self.positions['white'].items():
        if(piece=='king'): 
          kr,kc=pos
@@ -973,10 +1003,15 @@ class Game:
                black_pos+=pawn[7-r][c]
               else:
                 black_pos+=queen[7-r][c]  
- 
+     white_pos-=self.pawn_penalty(self.positions['white']['pawns'])           
+     black_pos-=self.pawn_penalty(self.positions['black']['pawns'])           
      pos_eval=white_pos-black_pos
-     score+=pos_eval       
- 
+     score+=pos_eval
+     if len(self.positions['white']['bishops']) == 2:
+      score += 30
+     if len(self.positions['black']['bishops']) == 2:
+      score -= 30       
+     
  
  
  
@@ -1036,17 +1071,95 @@ class Game:
          print(f"{rank} {' '.join(row)} {rank}")
      print(files)
  ###testinnggg
-  def minimax(self,color,depth,alpha,beta):
+  def quiescence(self, color, alpha, beta, qdepth=0):
+    stand_pat = self.evaluate(self.positions)
+
+    if qdepth >= 6:
+        return stand_pat
+
+    captures = self.generate_legal_moves(color, capture=True)
+
+    if color == 'white':
+        if stand_pat >= beta:
+            return beta
+        alpha = max(alpha, stand_pat)
+        for piece, (r, c), (tr, tc) in captures:
+            promo = 3 if (self.is_pawn2(r, c) and self.is_board_end(tr, tc)) else None
+            self.move_piece(self.unparse_move(r, c), self.unparse_move(tr, tc),
+                             to_promote=promo, verified=True)
+            score = self.quiescence('black', alpha, beta, qdepth + 1)
+            self.unmove()
+            if score >= beta:
+                return beta
+            alpha = max(alpha, score)
+        return alpha
+    else:
+        if stand_pat <= alpha:
+            return alpha
+        beta = min(beta, stand_pat)
+        for piece, (r, c), (tr, tc) in captures:
+            promo = 3 if (self.is_pawn2(r, c) and self.is_board_end(tr, tc)) else None
+            self.move_piece(self.unparse_move(r, c), self.unparse_move(tr, tc),
+                             to_promote=promo, verified=True)
+            score = self.quiescence('white', alpha, beta, qdepth + 1)
+            self.unmove()
+            if score <= alpha:
+                return alpha
+            beta = min(beta, score)
+        return beta
+
+  def minimax(self,color,depth,alpha,beta,deadline):
+    if(time.monotonic()>=deadline):
+      raise time_out()
+    moves=self.generate_legal_moves(color)
+    kr,kc=self.positions[color]['king']
+    if len(moves) == 0:
+      if self.is_checked(kr, kc):
+          return -10000 if color=='white' else 10000
+      else:
+          return 0
+    if(depth==0):
+     return self.quiescence(color, alpha, beta)   # was: return self.evaluate(self.positions) 
+    if(color=='white'):
+     maxeval=self.neg_inf
+     for piece,(r,c),(tr,tc) in moves:
+      promo = 3 if (self.is_pawn2(r,c) and self.is_board_end(tr,tc)) else None
+      self.move_piece(self.unparse_move(r,c), self.unparse_move(tr,tc), to_promote=promo, verified=True)
+      try:
+       eval=self.minimax('black',depth-1,alpha,beta,deadline)
+      finally:
+       self.unmove()
+      alpha=max(alpha,eval) 
+  
+      maxeval=max(eval,maxeval)
+      if(beta<=alpha):
+        break
+     return maxeval
+    else:
+      mineval=self.pos_inf
+      for piece,(r,c),(tr,tc) in moves:
+         promo = 3 if (self.is_pawn2(r,c) and self.is_board_end(tr,tc)) else None
+         self.move_piece(self.unparse_move(r,c), self.unparse_move(tr,tc), to_promote=promo, verified=True)
+         try:
+          eval=self.minimax('white',depth-1,alpha,beta,deadline)
+         finally:
+          self.unmove()
+         beta=min(beta,eval) 
+  
+         mineval=min(eval,mineval)
+         if(beta<=alpha):
+           break
+      return mineval
+  """ def minimax(self,color,depth,alpha,beta):
    moves=self.generate_legal_moves(color)
    kr,kc=self.positions[color]['king']
    if len(moves) == 0:
      if self.is_checked(kr, kc):
-         return -1000 if color=='white' else 1000
+         return -10000 if color=='white' else 10000
      else:
          return 0
    if(depth==0):
-     return self.evaluate(self.positions)
- 
+    return self.quiescence(color, alpha, beta)   # was: return self.evaluate(self.positions) 
    if(color=='white'):
     maxeval=self.neg_inf
     for piece,(r,c),(tr,tc) in moves:
@@ -1072,11 +1185,10 @@ class Game:
         mineval=min(eval,mineval)
         if(beta<=alpha):
           break
-     return mineval
+     return mineval"""
  
  
- 
-  def best_move(self,color,depth):
+  """def best_move(self,color,depth):
    moves=self.generate_legal_moves(color)
    bestmove=None
  
@@ -1104,7 +1216,52 @@ class Game:
          if eval< mineval:
           mineval=eval
           bestmove=[piece,(r,c),(tr,tc),mineval]
-     return bestmove
+     return bestmove"""
+
+ 
+  import time   
+  def best_move(self,color,depth,time_limit=2):
+   dead_line=time.monotonic()+time_limit
+   moves=self.generate_legal_moves(color)
+   best_move=None
+   best_move_tuples=None
+   for i in range(1,depth+1):
+    try:
+         if best_move_tuples is not None and best_move_tuples in moves:
+          moves.remove(best_move_tuples)
+          moves.insert(0,best_move_tuples)
+         if(color=='white'):
+             maxeval=self.neg_inf
+             for piece,(r,c),(tr,tc) in moves:
+              promo = 3 if (self.is_pawn2(r,c) and self.is_board_end(tr,tc)) else None
+              self.move_piece(self.unparse_move(r,c), self.unparse_move(tr,tc), to_promote=promo, verified=True)
+              try:
+               eval = self.minimax('black', i-1,self.neg_inf,self.pos_inf,dead_line)
+              finally:
+               self.unmove()
+          
+              if eval> maxeval:
+               maxeval=eval
+               best_move=[piece,(r,c),(tr,tc),maxeval]
+               best_move_tuples=(piece,(r,c),(tr,tc))
+         else:
+              mineval=self.pos_inf
+              for piece,(r,c),(tr,tc) in moves:
+                  promo = 3 if (self.is_pawn2(r,c) and self.is_board_end(tr,tc)) else None
+                  self.move_piece(self.unparse_move(r,c), self.unparse_move(tr,tc), to_promote=promo, verified=True)
+                  try:
+                   eval = self.minimax('white', i-1,self.neg_inf,self.pos_inf,dead_line)
+                  finally:
+                   self.unmove()
+                
+                  if eval< mineval:
+                   mineval=eval
+                   best_move=[piece,(r,c),(tr,tc),mineval]
+                   best_move_tuples=(piece,(r,c),(tr,tc))
+
+    except (time_out):
+     break
+   return best_move               
 
   def translate_click(self,r,c):
     if(self.is_empty2(r,c)):
