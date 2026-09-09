@@ -54,7 +54,7 @@ def make_move(request, game_id):
 
     # AI's turn now, and game isn't over
     if obj.vs_ai and obj.turn == "black" and obj.status == "ongoing":
-        ai_move = game.best_move("black", depth=3)
+        ai_move = game.best_move("black", depth=20,time_limit=5)
         if ai_move:
             piece, (r, c), (tr, tc), _score = ai_move
             from_sq = game.unparse_move(r, c)

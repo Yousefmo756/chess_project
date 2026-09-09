@@ -1,7 +1,8 @@
 from copy import deepcopy
 import math
 import time
-
+import random
+random.seed(12345)
 class time_out(Exception):
   pass
 class Game:
@@ -56,6 +57,13 @@ class Game:
          "white": self.castling_rights("white"),   
           "black": self.castling_rights("black")},"checkers":deepcopy(self.king_checkers)
  }]
+   self.z_board = [[[0 for _ in range(2)] for _ in range(6)] for _ in range(64)]
+   self.z_turn = random.getrandbits(64)
+   for i in range(64):
+    for j in range(6):
+      for k in range(2):
+        self.z_board[i][j][k]=random.getrandbits(64)
+   self.transpos_table={ }
 
    
   def parse_move(self,square):
@@ -120,8 +128,7 @@ class Game:
    r,c=self.parse_move(square)
    return self.real_board[r][c]=="."
   def is_empty2(self,r,c):
-     square=self.unparse_move(r,c)
-     return self.is_empty(square)
+    return self.real_board[r][c]=='.'
   def is_white(self,square):
    r,c=self.parse_move(square)
    if(self.is_empty(square)):
@@ -571,7 +578,12 @@ class Game:
   index_leftoff=None
   def isfifty_moves_draw(self):
     if(self.index_leftoff==None):
-     self.index_leftoff=0
+        self.index_leftoff=0
+    
+    total_since_leftoff = len(self.moves_log['pawn/capture']) - self.index_leftoff
+    if total_since_leftoff < 50:
+        return False
+
     movecount=0
     iscap_orpawn_count=0
     for i in range(self.index_leftoff,len(self.moves_log['pawn/capture'])):
@@ -1107,10 +1119,50 @@ class Game:
                 return alpha
             beta = min(beta, score)
         return beta
+   
 
+  def get_zobrist_key(self,positions,turn):
+    piece_index = {'pawns': 0, 'knights': 1, 'bishops': 2, 'rooks': 3, 'queen': 4, 'king': 5}
+  
+    hash=0
+    
+    for color in ('white','black'):
+     k = 0 if color == 'white' else 1
+     for piece,pos in positions[color].items():
+       j=piece_index[piece]
+
+       if piece=='king':
+            
+           r,c=pos
+           square_index = r * 8 + c
+
+           hash^=self.z_board[square_index][j][k]
+       else:    
+        for r,c in pos:
+         square_index = r * 8 + c
+         hash^=self.z_board[square_index][j][k]
+    if(turn=='black'):
+      hash^=self.z_turn
+    else:
+     hash^=0     
+      
+    return hash
+  
   def minimax(self,color,depth,alpha,beta,deadline):
     if(time.monotonic()>=deadline):
       raise time_out()
+
+    key=self.get_zobrist_key(self.positions,color)
+    if(key in self.transpos_table):
+      if(self.transpos_table[key]['depth']>=depth): 
+       if(self.transpos_table[key]['type']=='exact'):
+         return self.transpos_table[key]['score']
+       elif( self.transpos_table[key]['type']=='upperbound'):
+        beta=min(beta,self.transpos_table[key]['score'])
+       elif(self.transpos_table[key]['type']=='lowerbound'):
+         alpha=max(alpha,self.transpos_table[key]['score'])
+       if(alpha>=beta):
+        return self.transpos_table[key]['score'] 
     moves=self.generate_legal_moves(color)
     kr,kc=self.positions[color]['king']
     if len(moves) == 0:
@@ -1120,6 +1172,8 @@ class Game:
           return 0
     if(depth==0):
      return self.quiescence(color, alpha, beta)   # was: return self.evaluate(self.positions) 
+    prev_alpha=alpha
+    prev_beta=beta
     if(color=='white'):
      maxeval=self.neg_inf
      for piece,(r,c),(tr,tc) in moves:
@@ -1129,94 +1183,54 @@ class Game:
        eval=self.minimax('black',depth-1,alpha,beta,deadline)
       finally:
        self.unmove()
+
       alpha=max(alpha,eval) 
   
       maxeval=max(eval,maxeval)
+  
       if(beta<=alpha):
         break
+
+      score=maxeval
+         
+
+     if(maxeval>=beta):
+      entry_type='lowerbound'
+     elif(maxeval<=prev_alpha):
+        entry_type='upperbound'
+     else:
+       entry_type='exact'  
+     self.transpos_table[key] = {'score': maxeval, 'depth': depth, 'type': entry_type}
+
      return maxeval
     else:
       mineval=self.pos_inf
       for piece,(r,c),(tr,tc) in moves:
+
          promo = 3 if (self.is_pawn2(r,c) and self.is_board_end(tr,tc)) else None
          self.move_piece(self.unparse_move(r,c), self.unparse_move(tr,tc), to_promote=promo, verified=True)
          try:
           eval=self.minimax('white',depth-1,alpha,beta,deadline)
          finally:
           self.unmove()
+ 
          beta=min(beta,eval) 
-  
+
          mineval=min(eval,mineval)
+         
          if(beta<=alpha):
            break
+      score=mineval
+      if(mineval>=prev_beta):
+       entry_type='lowerbound'
+      elif(mineval<=alpha):
+       entry_type='upperbound'
+      else:
+       entry_type='exact'   
+      self.transpos_table[key] = {'score': mineval, 'depth': depth, 'type': entry_type}
+
       return mineval
-  """ def minimax(self,color,depth,alpha,beta):
-   moves=self.generate_legal_moves(color)
-   kr,kc=self.positions[color]['king']
-   if len(moves) == 0:
-     if self.is_checked(kr, kc):
-         return -10000 if color=='white' else 10000
-     else:
-         return 0
-   if(depth==0):
-    return self.quiescence(color, alpha, beta)   # was: return self.evaluate(self.positions) 
-   if(color=='white'):
-    maxeval=self.neg_inf
-    for piece,(r,c),(tr,tc) in moves:
-     promo = 3 if (self.is_pawn2(r,c) and self.is_board_end(tr,tc)) else None
-     self.move_piece(self.unparse_move(r,c), self.unparse_move(tr,tc), to_promote=promo, verified=True)
-     eval=self.minimax('black',depth-1,alpha,beta)
-     self.unmove()
-     alpha=max(alpha,eval) 
  
-     maxeval=max(eval,maxeval)
-     if(beta<=alpha):
-       break
-    return maxeval
-   else:
-     mineval=self.pos_inf
-     for piece,(r,c),(tr,tc) in moves:
-        promo = 3 if (self.is_pawn2(r,c) and self.is_board_end(tr,tc)) else None
-        self.move_piece(self.unparse_move(r,c), self.unparse_move(tr,tc), to_promote=promo, verified=True)
-        eval=self.minimax('white',depth-1,alpha,beta)
-        self.unmove()
-        beta=min(beta,eval) 
- 
-        mineval=min(eval,mineval)
-        if(beta<=alpha):
-          break
-     return mineval"""
- 
- 
-  """def best_move(self,color,depth):
-   moves=self.generate_legal_moves(color)
-   bestmove=None
- 
-   if(color=='white'):
-    maxeval=self.neg_inf
-    for piece,(r,c),(tr,tc) in moves:
-     promo = 3 if (self.is_pawn2(r,c) and self.is_board_end(tr,tc)) else None
-     self.move_piece(self.unparse_move(r,c), self.unparse_move(tr,tc), to_promote=promo, verified=True)
-     eval = self.minimax('black', depth-1,self.neg_inf,self.pos_inf)
-     self.unmove()
- 
-     if eval> maxeval:
-      maxeval=eval
-      bestmove=[piece,(r,c),(tr,tc),maxeval]
-    return bestmove
-    
-   else:
-     mineval=self.pos_inf
-     for piece,(r,c),(tr,tc) in moves:
-         promo = 3 if (self.is_pawn2(r,c) and self.is_board_end(tr,tc)) else None
-         self.move_piece(self.unparse_move(r,c), self.unparse_move(tr,tc), to_promote=promo, verified=True)
-         eval = self.minimax('white', depth-1,self.neg_inf,self.pos_inf)
-         self.unmove()
-       
-         if eval< mineval:
-          mineval=eval
-          bestmove=[piece,(r,c),(tr,tc),mineval]
-     return bestmove"""
 
  
   import time   
@@ -1237,6 +1251,7 @@ class Game:
               self.move_piece(self.unparse_move(r,c), self.unparse_move(tr,tc), to_promote=promo, verified=True)
               try:
                eval = self.minimax('black', i-1,self.neg_inf,self.pos_inf,dead_line)
+              
               finally:
                self.unmove()
           
@@ -1251,15 +1266,20 @@ class Game:
                   self.move_piece(self.unparse_move(r,c), self.unparse_move(tr,tc), to_promote=promo, verified=True)
                   try:
                    eval = self.minimax('white', i-1,self.neg_inf,self.pos_inf,dead_line)
+
                   finally:
+
                    self.unmove()
                 
                   if eval< mineval:
                    mineval=eval
                    best_move=[piece,(r,c),(tr,tc),mineval]
                    best_move_tuples=(piece,(r,c),(tr,tc))
+         print('depth completed:',i)
 
     except (time_out):
+     print('depth uncompleted:',i)
+     
      break
    return best_move               
 
@@ -1355,4 +1375,5 @@ class Game:
 
     return game
      
+
 
