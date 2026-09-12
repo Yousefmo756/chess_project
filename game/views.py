@@ -23,6 +23,8 @@ def create_game(request):
         positions=state["positions"],
         moves_log=state["moves_log"],
         turn="white",
+        castling_flags=state['castling_flags'],
+
         vs_ai=vs_ai,
     )
     return JsonResponse({"id": obj.id, "board": game.translate_board(), "turn": "white"})
@@ -34,7 +36,7 @@ def make_move(request, game_id):
     if obj.status in ['checkmate', 'stalemate', 'draw']:
         return JsonResponse({"error": f"{obj.status}"}, status=400)
 
-    game = Game.from_state_dict({"positions": obj.positions, "moves_log": obj.moves_log})
+    game = Game.from_state_dict({"positions": obj.positions, "moves_log": obj.moves_log,'castling_flags':obj.castling_flags})
 
     body = json.loads(request.body)
     isturn = False
@@ -70,6 +72,7 @@ def make_move(request, game_id):
     state = game.to_state_dict()
     obj.positions = state["positions"]
     obj.moves_log = state["moves_log"]
+    obj.castling_flags=state['castling_flags']
     obj.save()
 
     return JsonResponse({
@@ -80,5 +83,5 @@ def make_move(request, game_id):
 
 def get_board(request, game_id):
     obj = ChessGame.objects.get(id=game_id)
-    game = Game.from_state_dict({"positions": obj.positions, "moves_log": obj.moves_log})
+    game = Game.from_state_dict({"positions": obj.positions, "moves_log": obj.moves_log,'castling_flags':obj.castling_flags})
     return JsonResponse({"board": game.translate_board(), "turn": obj.turn, "status": obj.status})

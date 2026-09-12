@@ -2,6 +2,7 @@ from copy import deepcopy
 import math
 import time
 import random
+import numpy as np
 random.seed(12345)
 class time_out(Exception):
   pass
@@ -11,6 +12,8 @@ class Game:
  #legal_dir={["p","P"]:(1,0),["r","R"]:[ (1,0),(-1,0),(0,1),(0,-1)],["b","B"]:[(1,1),(1,-1),(-1,1),(-1,-1)],["n","N"]:(()) }
  
   def __init__(self):
+   self.piece_index = {'pawns': 0, 'knights': 1, 'bishops': 2, 'rooks': 3, 'queen': 4, 'king': 5}
+   
    self.real_board = [
         ['r','n','b','q','k','b','n','r'],
         ['p','p','p','p','p','p','p','p'],
@@ -42,6 +45,10 @@ class Game:
         }
         }
    self.king_checkers={'white':[],'black':[]}
+   self.castling_flags={
+       'white': {'kingside': True, 'queenside': True},
+       'black': {'kingside': True, 'queenside': True}
+   }
    self.moves_log= {
       "from":[]
       ,"to":[],
@@ -55,7 +62,7 @@ class Game:
    self.index_leftoff=None
    self.board_snapshots=[{"board":deepcopy(self.positions),"turn":"white","enpassent":None,"castling": {
          "white": self.castling_rights("white"),   
-          "black": self.castling_rights("black")},"checkers":deepcopy(self.king_checkers)
+          "black": self.castling_rights("black")},"checkers":deepcopy(self.king_checkers),"castle_flags":deepcopy(self.castling_flags)
  }]
    self.z_board = [[[0 for _ in range(2)] for _ in range(6)] for _ in range(64)]
    self.z_turn = random.getrandbits(64)
@@ -64,8 +71,8 @@ class Game:
       for k in range(2):
         self.z_board[i][j][k]=random.getrandbits(64)
    self.transpos_table={ }
-
-   
+   self.hash_key=self.get_zobrist_key(self.positions,'white')
+   self.hash_stack = [] 
   def parse_move(self,square):
    file='abcdefgh'
    col_letter=square[0]
@@ -331,26 +338,9 @@ class Game:
         else:
            return False
        
-  def rook_or_king_moved(self,r_r,r_c,color):
-    r_moved=None
-    k_moved=None
-    (kr,kc)=self.positions[color]['king']
-    if(color=='black'):
-     idx= self.positions[color]['rooks'].index((r_r,r_c))
-     k_moved=False if(kr,kc)==(0,4) else True
-     if(idx==0):
-      r_moved=False if(r_r,r_c)==(0,0) else True
-     if(idx==1):
-      r_moved=False if(r_r,r_c)==(0,7) else True
-    if(color=='white'):
-       idx= self.positions[color]['rooks'].index((r_r,r_c))
-       k_moved=False if(kr,kc)==(7,4) else True
-       if(idx==0):
-        r_moved=False if(r_r,r_c)==(7,0) else True
-       if(idx==1):
-        r_moved=False if(r_r,r_c)==(7,7) else True
-    return r_moved or k_moved
-  
+  def rook_or_king_moved(self, r_r, r_c, color):
+    side = 'queenside' if r_c == 0 else 'kingside'
+    return not self.castling_flags[color][side]
   def pawn_legal(self,pos_r,pos_c,target_r,target_c):
    r,c=pos_r,pos_c
    tr,tc=target_r,target_c
@@ -506,6 +496,8 @@ class Game:
       self.positions[color]['king']=(old_r,old_c+k_dy)
       idx=self.positions[color]['rooks'].index((old_r,c))
       self.positions[color]['rooks'][idx]=(r,old_c+k_dy+r_dy)
+      self.castling_flags[color]['kingside']=False
+      self.castling_flags[color]['queenside']=False
       self.moves_log["from"].append((old_r,old_c))
       self.moves_log["to"].append((r,c))
       self.moves_log['castling'].append('true')
@@ -515,7 +507,7 @@ class Game:
       self.board_snapshots.append({"board":deepcopy(self.positions),"turn":color,"enpassent":self.enpassent_corr(ispawnmove),"castling": {
          "white": self.castling_rights("white"),   
          "black": self.castling_rights("black"),
-     },"checkers":deepcopy(self.king_checkers)})
+     },"checkers":deepcopy(self.king_checkers),"castle_flags":deepcopy(self.castling_flags)})
     else:
  
   
@@ -526,6 +518,12 @@ class Game:
        piece=key
        break
      if(piece=='rooks' or piece=='bishops' or piece=='knights' or piece=='pawns' or piece=='queen'):
+        if(piece=='rooks'):
+          home_row=7 if color=='white' else 0
+          if((old_r,old_c)==(home_row,0)):
+            self.castling_flags[color]['queenside']=False
+          elif((old_r,old_c)==(home_row,7)):
+            self.castling_flags[color]['kingside']=False
         idx=self.positions[color][piece].index((old_r,old_c))
         for e_piece,e_pos in self.positions[e_color].items():
           if e_piece=='king':
@@ -548,6 +546,8 @@ class Game:
             self.dead_pieces[e_color].append(e_piece)
             break
         self.positions[color][piece]=(r,c)
+        self.castling_flags[color]['kingside']=False
+        self.castling_flags[color]['queenside']=False
   
      self.moves_log["from"].append((old_r,old_c))
      self.moves_log["to"].append((r,c))
@@ -558,8 +558,7 @@ class Game:
      self.board_snapshots.append({"board":deepcopy(self.positions),"turn":color,"enpassent":self.enpassent_corr(ispawnmove),"castling": {
           "white": self.castling_rights("white"),   
           "black": self.castling_rights("black"),
-      },"checkers":deepcopy(self.king_checkers)})
- 
+      },"checkers":deepcopy(self.king_checkers),"castle_flags":deepcopy(self.castling_flags)})
   nextindex=None
   def is_three_fold(self):
     if(self.nextindex==None):
@@ -625,9 +624,6 @@ class Game:
    color=None
    if(not self.is_empty2(r,c) and pos_sq!=target_sq and not self.is_king2(tr,tc)):
           color='white'if(self.is_white2(r,c)) else 'black'
- 
-   
-    
           k_r,k_c=self.index_my_king(r,c)
           legal_moves=[]
           is_pieces={"king":self.is_king2(old_r,old_c),"bishops":self.is_bishop2(old_r,old_c),"knights":self.is_knight2(old_r,old_c),"queen":self.is_queen2(old_r,old_c),"pawns":self.is_pawn2(old_r,old_c),"rooks":self.is_rook2(old_r,old_c)}
@@ -640,16 +636,27 @@ class Game:
             legal_moves = self.generate_legal_moves(color)
             if not ((piece,(r,c),(tr,tc)) in legal_moves):
               return False
+
+          self.hash_stack.append(self.hash_key)   # NEW — save old hash before any mutation
+          enemy_color = 'black' if color=='white' else 'white'  # NEW
+
           if(self.is_king2(r,c) and self.is_friend(r,c,tr,tc) and self.is_rook2(tr,tc)):
            k_dy,r_dy=(2,-1) if(tc>c) else(-2,1)
+           self.hash_key ^= self._sq_hash(color,'king',r,c)          # NEW
+           self.hash_key ^= self._sq_hash(color,'rooks',tr,tc)       # NEW
            self.update_place(r,c,tr,tc,castlingflag=True)
            self.real_board[r][c+k_dy]=self.real_board[r][c]
            self.real_board[r][c+k_dy+r_dy]=self.real_board[tr][tc]
            self.real_board[r][c]='.'
            self.real_board[tr][tc]='.'
-         
+           self.hash_key ^= self._sq_hash(color,'king', r, c+k_dy)          # NEW
+           self.hash_key ^= self._sq_hash(color,'rooks', r, c+k_dy+r_dy)    # NEW
+           self.hash_key ^= self.z_turn                                     # NEW
            return True
+
           elif(self.is_pawn2(r,c) and self.is_white2(r,c) and tr==r-1 and(self.is_pawn2(tr+1,tc) and not self.is_friend(r,c,tr+1,tc)) and self.is_empty2(tr,tc) and self.moves_log["to"][-1]==(tr+1,tc) and self.moves_log["from"][-1][0]==1 and abs(self.moves_log["from"][-1][0]-self.moves_log["to"][-1][0])==2 and c==tc-1):
+           self.hash_key ^= self._sq_hash(color,'pawns',r,c)                # NEW
+           self.hash_key ^= self._sq_hash(enemy_color,'pawns',tr+1,tc)      # NEW
            self.update_place(r,c,tr,tc)
            self.real_board[tr][tc]=self.real_board[r][c]
            self.real_board[tr+1][tc]='.'
@@ -657,8 +664,13 @@ class Game:
            if (tr+1, tc) in self.positions['black']['pawns']:
                self.positions['black']['pawns'].remove((tr+1, tc))
                self.dead_pieces['black'].append('pawns')
+           self.hash_key ^= self._sq_hash(color,'pawns',tr,tc)              # NEW
+           self.hash_key ^= self.z_turn                                     # NEW
            return True
+
           elif(self.is_pawn2(r,c) and self.is_white2(r,c) and tr==r-1 and(self.is_pawn2(tr+1,tc) and not self.is_friend(r,c,tr+1,tc)) and self.is_empty2(tr,tc) and self.moves_log["to"][-1]==(tr+1,tc) and self.moves_log["from"][-1][0]==1 and abs(self.moves_log["from"][-1][0]-self.moves_log["to"][-1][0])==2 and c==tc+1):
+               self.hash_key ^= self._sq_hash(color,'pawns',r,c)            # NEW
+               self.hash_key ^= self._sq_hash(enemy_color,'pawns',tr+1,tc)  # NEW
                self.update_place(r,c,tr,tc)
                self.real_board[tr][tc]=self.real_board[r][c]
                self.real_board[tr+1][tc]='.'
@@ -666,8 +678,13 @@ class Game:
                if (tr+1, tc) in self.positions['black']['pawns']:
                    self.positions['black']['pawns'].remove((tr+1, tc))
                    self.dead_pieces['black'].append('pawns')
+               self.hash_key ^= self._sq_hash(color,'pawns',tr,tc)          # NEW
+               self.hash_key ^= self.z_turn                                 # NEW
                return True
+
           elif(self.is_pawn2(r,c) and self.is_black2(r,c) and tr==r+1 and (self.is_pawn2(tr-1,tc) and not self.is_friend(r,c,tr-1,tc)) and self.is_empty2(tr,tc) and self.moves_log["to"][-1]==(tr-1,tc) and self.moves_log["from"][-1][0]==6 and abs(self.moves_log["from"][-1][0]-self.moves_log["to"][-1][0])==2 and c==tc+1):
+               self.hash_key ^= self._sq_hash(color,'pawns',r,c)            # NEW
+               self.hash_key ^= self._sq_hash(enemy_color,'pawns',tr-1,tc)  # NEW
                self.update_place(r,c,tr,tc)
                self.real_board[tr][tc]=self.real_board[r][c]
                self.real_board[tr-1][tc]='.'
@@ -675,8 +692,13 @@ class Game:
                if (tr-1, tc) in self.positions['white']['pawns']:
                    self.positions['white']['pawns'].remove((tr-1, tc))
                    self.dead_pieces['white'].append('pawns')
+               self.hash_key ^= self._sq_hash(color,'pawns',tr,tc)          # NEW
+               self.hash_key ^= self.z_turn                                 # NEW
                return True
+
           elif(self.is_pawn2(r,c) and self.is_black2(r,c) and tr==r+1 and (self.is_pawn2(tr-1,tc) and not self.is_friend(r,c,tr-1,tc)) and self.is_empty2(tr,tc) and self.moves_log["to"][-1]==(tr-1,tc) and self.moves_log["from"][-1][0]==6 and abs(self.moves_log["from"][-1][0]-self.moves_log["to"][-1][0])==2 and c==tc-1):
+               self.hash_key ^= self._sq_hash(color,'pawns',r,c)            # NEW
+               self.hash_key ^= self._sq_hash(enemy_color,'pawns',tr-1,tc)  # NEW
                self.update_place(r,c,tr,tc)
                self.real_board[tr][tc]=self.real_board[r][c]
                self.real_board[tr-1][tc]='.'
@@ -684,10 +706,18 @@ class Game:
                if (tr-1, tc) in self.positions['white']['pawns']:
                    self.positions['white']['pawns'].remove((tr-1, tc))
                    self.dead_pieces['white'].append('pawns')
+               self.hash_key ^= self._sq_hash(color,'pawns',tr,tc)          # NEW
+               self.hash_key ^= self.z_turn                                 # NEW
                return True
+
           else:
            if(self.is_pawn2(r,c) and self.is_board_end(tr,tc) and to_promote not in (1,2,3,4)):
+            self.hash_stack.pop()   # NEW — undo the push above, since nothing actually moved
             return False
+           captured_piece = self.get_piece(tr,tc) if not self.is_empty2(tr,tc) else None  # NEW
+           self.hash_key ^= self._sq_hash(color,piece,r,c)                                # NEW
+           if captured_piece:                                                             # NEW
+               self.hash_key ^= self._sq_hash(enemy_color,captured_piece,tr,tc)           # NEW
            self.update_place(r,c,tr,tc)
            self.real_board[tr][tc]=self.real_board[r][c]
            self.real_board[r][c]='.'
@@ -702,8 +732,13 @@ class Game:
               del self.positions[color]['pawns'][idx]
               promo_key={'b':'bishops','n':'knights','q':'queen','r':'rooks'}[pivot]
               self.positions[color][promo_key].append((tr,tc))
+              self.hash_key ^= self._sq_hash(color,promo_key,tr,tc)   # NEW — add promoted piece
             else:
+              self.hash_stack.pop()   # NEW — undo push, nothing happened
               return False
+          else:
+              self.hash_key ^= self._sq_hash(color,piece,tr,tc)      # NEW — normal (non-promoting) arrival
+          self.hash_key ^= self.z_turn   # NEW
           return True
         
    
@@ -1036,6 +1071,7 @@ class Game:
         self.real_board[i][j]='.'
     self.king_checkers=deepcopy(self.board_snapshots[-2]['checkers'])
     self.positions=deepcopy(self.board_snapshots[-2]['board'])
+    self.castling_flags=deepcopy(self.board_snapshots[-2]['castle_flags'])
     b_mapping={'knights':'n','king':'k','queen':'q','bishops':'b'  ,'rooks':'r','pawns':'p'}
     mapping={'knights':'N','king':'K','queen':'Q','bishops':'B'  ,'rooks':'R','pawns':'P'}
     for piece,position in self.positions['white'].items():
@@ -1061,7 +1097,7 @@ class Game:
     self.moves_log['pawn/capture'].pop() 
     self.moves_log['pawn'].pop() 
     self.board_snapshots.pop()    
-     
+    self.hash_key = self.hash_stack.pop()   # NEW
    else:
      return
    
@@ -1120,16 +1156,18 @@ class Game:
             beta = min(beta, score)
         return beta
    
-
+  def _sq_hash(self, color, piece, r, c):
+    k = 0 if color == 'white' else 1
+    j = self.piece_index[piece]
+    return self.z_board[r*8 + c][j][k]
   def get_zobrist_key(self,positions,turn):
-    piece_index = {'pawns': 0, 'knights': 1, 'bishops': 2, 'rooks': 3, 'queen': 4, 'king': 5}
   
     hash=0
     
     for color in ('white','black'):
      k = 0 if color == 'white' else 1
      for piece,pos in positions[color].items():
-       j=piece_index[piece]
+       j=self.piece_index[piece]
 
        if piece=='king':
             
@@ -1151,8 +1189,7 @@ class Game:
   def minimax(self,color,depth,alpha,beta,deadline):
     if(time.monotonic()>=deadline):
       raise time_out()
-
-    key=self.get_zobrist_key(self.positions,color)
+    key = self.hash_key   # replaces: key=self.get_zobrist_key(self.positions,color)
     if(key in self.transpos_table):
       if(self.transpos_table[key]['depth']>=depth): 
        if(self.transpos_table[key]['type']=='exact'):
@@ -1320,8 +1357,8 @@ class Game:
      return {
         "positions": self.positions,
         "moves_log": 
-             self.moves_log
-       
+             self.moves_log,
+        "castling_flags": self.castling_flags
     }
   @classmethod
   def from_state_dict(cls, state):
@@ -1349,6 +1386,11 @@ class Game:
     game.moves_log["pawn/capture"] = state["moves_log"]["pawn/capture"]
     game.moves_log["castling"] = state["moves_log"]["castling"]
 
+    if "castling_flags" in state:
+        game.castling_flags = {
+            color: dict(sides) for color, sides in state["castling_flags"].items()
+        }
+
     # rebuild real_board from the restored positions, since real_board itself
     # isn't stored — it's derived
     game.real_board = [['.' for _ in range(8)] for _ in range(8)]
@@ -1374,6 +1416,70 @@ class Game:
                 game.real_board[r][c] = letter
 
     return game
-     
 
+  def encode_board(self, positions):
+  
+      # En passant
+      ep = self.board_snapshots[-1]['enpassent']
+      enpassent = [0] * 64
+  
+      if ep is not None:
+          e_r, e_c = ep
+          square_index = e_r * 8 + e_c
+          enpassent[square_index] = 1
+  
+      # Castling rights
+      castling = [
+          int(self.castling_flags['white']['kingside']),
+          int(self.castling_flags['white']['queenside']),
+          int(self.castling_flags['black']['kingside']),
+          int(self.castling_flags['black']['queenside'])
+      ]
+  
+      # Turn
+      turn = 1 if self.board_snapshots[-1]['turn'] == 'black' else 0
+  
+      # Board
+      tensor = [
+          [[0 for _ in range(2)] for _ in range(6)]
+          for _ in range(64)
+      ]
+  
+      for color in ('white', 'black'):
+          k = 0 if color == 'white' else 1
+  
+          for piece, pos in positions[color].items():
+  
+              j = self.piece_index[piece]
+  
+              if piece == 'king':
+  
+                  r, c = pos
+                  square_index = r * 8 + c
+                  tensor[square_index][j][k] = 1
+  
+              else:
+  
+                  for r, c in pos:
+                      square_index = r * 8 + c
+                      tensor[square_index][j][k] = 1
+  
+      # Convert to numpy
+      tensor = np.array(tensor, dtype=np.float32).flatten()
+      castling = np.array(castling, dtype=np.float32)
+      enpassent = np.array(enpassent, dtype=np.float32)
+      turn = np.array([turn], dtype=np.float32)
+  
+      # Final NN input
+      x = np.concatenate([
+          tensor,
+          castling,
+          enpassent,
+          turn
+      ])
+  
+      return x
+
+g=Game()
+print(g.encode_board(g.positions))
 
