@@ -3,6 +3,11 @@ import math
 import time
 import random
 import numpy as np
+import torch
+from NN import neuralnet
+
+
+
 random.seed(12345)
 class time_out(Exception):
   pass
@@ -49,6 +54,12 @@ class Game:
        'white': {'kingside': True, 'queenside': True},
        'black': {'kingside': True, 'queenside': True}
    }
+   self.castle_order = [
+    ('white', 'kingside'),
+    ('white', 'queenside'),
+    ('black', 'kingside'),
+    ('black', 'queenside'),
+]
    self.moves_log= {
       "from":[]
       ,"to":[],
@@ -65,6 +76,7 @@ class Game:
           "black": self.castling_rights("black")},"checkers":deepcopy(self.king_checkers),"castle_flags":deepcopy(self.castling_flags)
  }]
    self.z_board = [[[0 for _ in range(2)] for _ in range(6)] for _ in range(64)]
+   self.z_castle = [random.getrandbits(64) for _ in range(4)]
    self.z_turn = random.getrandbits(64)
    for i in range(64):
     for j in range(6):
@@ -73,6 +85,11 @@ class Game:
    self.transpos_table={ }
    self.hash_key=self.get_zobrist_key(self.positions,'white')
    self.hash_stack = [] 
+  def _clear_castle_right(self, color, side):
+    if self.castling_flags[color][side]:
+        idx = self.castle_order.index((color, side))
+        self.hash_key ^= self.z_castle[idx]
+        self.castling_flags[color][side] = False 
   def parse_move(self,square):
    file='abcdefgh'
    col_letter=square[0]
@@ -1179,6 +1196,9 @@ class Game:
         for r,c in pos:
          square_index = r * 8 + c
          hash^=self.z_board[square_index][j][k]
+    for (color, side), z in zip(self.castle_order, self.z_castle):
+        if self.castling_flags[color][side]:
+            hash ^= z     
     if(turn=='black'):
       hash^=self.z_turn
     else:
@@ -1358,7 +1378,7 @@ class Game:
         "positions": self.positions,
         "moves_log": 
              self.moves_log,
-        "castling_flags": self.castling_flags
+        "castling_flags": deepcopy(self.castling_flags)
     }
   @classmethod
   def from_state_dict(cls, state):
@@ -1479,7 +1499,11 @@ class Game:
       ])
   
       return x
-
 g=Game()
-print(g.encode_board(g.positions))
+x=torch.from_numpy( g.encode_board(g.positions))
+model=neuralnet(x)
+print(model(x))
+
+print(model(x).shape)
+
 
