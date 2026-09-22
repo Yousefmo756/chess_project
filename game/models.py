@@ -9,3 +9,5 @@ class ChessGame(models.Model):
     board_snapshots=models.JSONField(default=list)
     moves_log = models.JSONField()
     vs_ai = models.BooleanField(default=False)
+    difficulty = models.CharField(max_length=10, default='medium')
+    

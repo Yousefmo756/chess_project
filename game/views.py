@@ -15,6 +15,7 @@ def game(request):
 def create_game(request):
     body = json.loads(request.body) if request.body else {}
     vs_ai = body.get("vs_ai", False)
+    difficulty = body.get("difficulty") or "medium"
 
     game = Game()
     state = game.to_state_dict()
@@ -25,12 +26,10 @@ def create_game(request):
         turn="white",
         castling_flags=state["castling_flags"],
         board_snapshots=state["board_snapshots"],
-
         vs_ai=vs_ai,
+        difficulty=difficulty,
     )
     return JsonResponse({"id": obj.id, "board": game.translate_board(), "turn": "white"})
-
-
 @csrf_exempt
 def make_move(request, game_id):
     obj = ChessGame.objects.get(id=game_id)
@@ -73,8 +72,14 @@ def make_move(request, game_id):
         "status": obj.status,
         "ai_to_move": obj.vs_ai and obj.turn == "black" and obj.status == "ongoing",
     })
-
+DIFFICULTY_SETTINGS = {
+    'easy':   {'depth': 2, 'time_limit': 1},
+    'medium': {'depth': 3, 'time_limit': 3},
+    'hard':   {'depth': 4, 'time_limit': 5},
+}
 @csrf_exempt
+
+
 
 def ai_move(request, game_id):
     obj = ChessGame.objects.get(id=game_id)
@@ -90,7 +95,9 @@ def ai_move(request, game_id):
         "board_snapshots": obj.board_snapshots,
     })
 
-    ai_result = game.best_move("black", depth=20, time_limit=5)
+    settings = DIFFICULTY_SETTINGS.get(obj.difficulty, DIFFICULTY_SETTINGS['medium'])
+    ai_result = game.best_move("black", depth=settings['depth'], time_limit=settings['time_limit'])
+
     if ai_result:
         piece, (r, c), (tr, tc), _score = ai_result
         from_sq = game.unparse_move(r, c)
