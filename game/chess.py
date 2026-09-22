@@ -1,11 +1,12 @@
 from copy import deepcopy
+import json
 import math
+from multiprocessing import Pool
 import time
 import random
 import numpy as np
 import torch
-from NN import neuralnet
-
+#from game.NN import neuralnet
 
 
 random.seed(12345)
@@ -17,6 +18,8 @@ class Game:
  #legal_dir={["p","P"]:(1,0),["r","R"]:[ (1,0),(-1,0),(0,1),(0,-1)],["b","B"]:[(1,1),(1,-1),(-1,1),(-1,-1)],["n","N"]:(()) }
  
   def __init__(self):
+   self.node_count = 0 
+
    self.piece_index = {'pawns': 0, 'knights': 1, 'bishops': 2, 'rooks': 3, 'queen': 4, 'king': 5}
    
    self.real_board = [
@@ -85,6 +88,7 @@ class Game:
    self.transpos_table={ }
    self.hash_key=self.get_zobrist_key(self.positions,'white')
    self.hash_stack = [] 
+   self.quiescence_stack=[]
   def _clear_castle_right(self, color, side):
     if self.castling_flags[color][side]:
         idx = self.castle_order.index((color, side))
@@ -513,8 +517,8 @@ class Game:
       self.positions[color]['king']=(old_r,old_c+k_dy)
       idx=self.positions[color]['rooks'].index((old_r,c))
       self.positions[color]['rooks'][idx]=(r,old_c+k_dy+r_dy)
-      self.castling_flags[color]['kingside']=False
-      self.castling_flags[color]['queenside']=False
+      self._clear_castle_right(color, 'kingside')
+      self._clear_castle_right(color, 'queenside')
       self.moves_log["from"].append((old_r,old_c))
       self.moves_log["to"].append((r,c))
       self.moves_log['castling'].append('true')
@@ -538,9 +542,9 @@ class Game:
         if(piece=='rooks'):
           home_row=7 if color=='white' else 0
           if((old_r,old_c)==(home_row,0)):
-            self.castling_flags[color]['queenside']=False
+            self._clear_castle_right(color, 'queenside')
           elif((old_r,old_c)==(home_row,7)):
-            self.castling_flags[color]['kingside']=False
+           self._clear_castle_right(color, 'kingside')
         idx=self.positions[color][piece].index((old_r,old_c))
         for e_piece,e_pos in self.positions[e_color].items():
           if e_piece=='king':
@@ -563,8 +567,8 @@ class Game:
             self.dead_pieces[e_color].append(e_piece)
             break
         self.positions[color][piece]=(r,c)
-        self.castling_flags[color]['kingside']=False
-        self.castling_flags[color]['queenside']=False
+        self._clear_castle_right(color, 'kingside')
+        self._clear_castle_right(color, 'queenside')
   
      self.moves_log["from"].append((old_r,old_c))
      self.moves_log["to"].append((r,c))
@@ -640,6 +644,7 @@ class Game:
    tr,tc=target
    color=None
    if(not self.is_empty2(r,c) and pos_sq!=target_sq and not self.is_king2(tr,tc)):
+          #self.node_count+=1
           color='white'if(self.is_white2(r,c)) else 'black'
           k_r,k_c=self.index_my_king(r,c)
           legal_moves=[]
@@ -1332,10 +1337,10 @@ class Game:
                    mineval=eval
                    best_move=[piece,(r,c),(tr,tc),mineval]
                    best_move_tuples=(piece,(r,c),(tr,tc))
-         print('depth completed:',i)
+         #print('depth completed:',i)
 
     except (time_out):
-     print('depth uncompleted:',i)
+     #print('depth uncompleted:',i)
      
      break
    return best_move               
@@ -1378,7 +1383,9 @@ class Game:
         "positions": self.positions,
         "moves_log": 
              self.moves_log,
-        "castling_flags": deepcopy(self.castling_flags)
+        "castling_flags": deepcopy(self.castling_flags), 
+        "board_snapshots": self.board_snapshots,
+
     }
   @classmethod
   def from_state_dict(cls, state):
@@ -1396,7 +1403,25 @@ class Game:
                     # everything else was a list of lists -> list of tuples
                     out[color][piece] = [tuple(p) for p in value]
         return out
-
+    def restore_snapshot(snap):
+        board = restore_positions(snap["board"])
+        checkers = {
+            color: [(piece, tuple(pos)) for piece, pos in lst]
+            for color, lst in snap["checkers"].items()
+        }
+        castle_flags = {
+            color: dict(sides) for color, sides in snap["castle_flags"].items()
+        }
+        ep = snap["enpassent"]
+        enpassent = tuple(ep) if ep is not None else None
+        return {
+            "board": board,
+            "turn": snap["turn"],
+            "enpassent": enpassent,
+            "castling": snap["castling"],
+            "checkers": checkers,
+            "castle_flags": castle_flags,
+        }
     game.positions = restore_positions(state["positions"])
 
     game.moves_log["from"] = [tuple(p) for p in state["moves_log"]["from"]]
@@ -1410,6 +1435,8 @@ class Game:
         game.castling_flags = {
             color: dict(sides) for color, sides in state["castling_flags"].items()
         }
+    if "board_snapshots" in state:
+        game.board_snapshots = [restore_snapshot(s) for s in state["board_snapshots"]]    
 
     # rebuild real_board from the restored positions, since real_board itself
     # isn't stored — it's derived
@@ -1499,11 +1526,94 @@ class Game:
       ])
   
       return x
-g=Game()
+
+  def label_eval(self, color, depth, time_limit=10000):
+    entry = self.transpos_table.get(self.hash_key)
+    if entry is not None and entry['depth'] >= depth and entry['type'] == 'exact':
+        return entry['score']
+    try:
+        return self.minimax(color, depth, self.neg_inf, self.pos_inf,
+                             time.monotonic() + time_limit)
+    except time_out:
+        return self.evaluate(self.positions)
+def simulate_game():
+  g=Game()
+  turn=['white','black']
+  i=False
+  examples={}
+  count=0
+  while(g.is_game_end(turn[int(i)])=='ongoing' and count<30):
+   israndom=False
+
+   count+=1
+   color=turn[int(i)]
+   RANDOM_OPENING_PLIES = 8
+   if(count <= RANDOM_OPENING_PLIES):
+     moves = g.generate_legal_moves(color)
+     piece, (r, c), (tr, tc) = random.choice(moves)
+     _score =None
+     israndom=True   
+   elif(color=='black'):
+    piece, (r, c), (tr, tc), _score = g.best_move('black',6)
+   else:
+    piece, (r, c), (tr, tc), _score = g.best_move('white',2)
+
+   from_sq = g.unparse_move(r, c)
+   to_sq = g.unparse_move(tr, tc)
+   promo = 3 if (piece == 'pawns' and g.is_board_end(tr, tc)) else None
+   g.move_piece(from_sq, to_sq, to_promote=promo, verified=True)
+   if(israndom):
+     next_to_move = 'black' if color == 'white' else 'white'
+     _score = g.quiescence(next_to_move, g.neg_inf, g.pos_inf) 
+     israndom=False
+
+   i = not i  # flip BEFORE checking, since it's now the other side's turn
+   result = g.is_game_end(turn[int(i)])   # check the side that must move next
+
+   examples[count] = {
+       "evaluation": _score,
+       "board": g.encode_board(g.positions),
+       "result": result
+   }
+  """  with open("training_data.txt", "a") as f:
+        for example in examples.values():
+            example["board"] = example["board"].tolist()
+
+            f.write(json.dumps(example) + "\n")"""
+  return examples
+
+
+
+def run_game(game_number):
+    return simulate_game()
+
+if __name__ == "__main__":
+
+    with Pool(processes=10,maxtasksperchild=1) as pool:
+
+        with open("training_data.txt", "a", encoding="utf-8") as f:
+
+            for game_number, examples in enumerate(
+                pool.imap_unordered(run_game, range(1000),chunksize=1),
+                start=1
+            ):
+
+                for example in examples.values():
+                    example["board"] = example["board"].tolist()
+                    f.write(json.dumps(example) + "\n")
+
+                f.flush()
+
+                print("Finished:", game_number)
+"""n_games=100
+for game_idx in range(n_games):
+    examples = simulate_game()
+    
+    print(f"game {game_idx+1}/{n_games} done, {len(examples)} plies")
+"""
+"""g=Game()
 x=torch.from_numpy( g.encode_board(g.positions))
 model=neuralnet(x)
 print(model(x))
 
-print(model(x).shape)
-
-
+print(model(x).shape)"""

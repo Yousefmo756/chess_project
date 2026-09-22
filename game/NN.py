@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 class neuralnet(nn.Module):
- def __init__(self,x):
+ def __init__(self):
   super().__init__()
   self.layers=nn.Sequential(nn.Linear(837,512),nn.ReLU(),nn.Linear(512,126),nn.ReLU(),nn.Linear(126,1))
  def __call__(self,x):

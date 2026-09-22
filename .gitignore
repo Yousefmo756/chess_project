@@ -1,0 +1,11 @@
+.env
+config/.env
+*.pyc
+__pycache__/
+db.sqlite3
+staticfiles/
+training_data.txt
+chess_model.pth
+game/__pycache__/
+game/migrations/__pycache__/
+__pycache__/

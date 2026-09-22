@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,8 +21,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-938&7*$cw95tpt_3!s5%#7c(z8+nvl6t4nu@l^yvac9u0%bbqr'
 
+
+
+import os
+from decouple import config
+SECRET_KEY = config('SECRET_KEY')
+if not SECRET_KEY:
+ raise Exception("SECRET_KEY environment variable is not set")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
@@ -41,6 +48,8 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',   # right after security
+
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -71,14 +80,14 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
+import dj_database_url
+from decouple import config
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        default=config('DATABASE_URL', default='sqlite:///db.sqlite3')
+    )
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/6.1/ref/settings/#auth-password-validators
@@ -125,3 +134,6 @@ MAILERS = {
         'BACKEND': 'django.core.mail.backends.console.EmailBackend',
     },
 }
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'

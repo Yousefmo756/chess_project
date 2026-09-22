@@ -64,7 +64,7 @@ async function makemove(pos_sq, t_sq, promotion = null) {
     const response = await fetch(`/game/${game_id}/move/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from: pos_sq, to: t_sq, promotion: promotion })
+        body: JSON.stringify({ from: pos_sq, to: t_sq, promotion })
     });
     const data = await response.json();
 
@@ -74,58 +74,93 @@ async function makemove(pos_sq, t_sq, promotion = null) {
     }
 
     board = data['board'];
-    render_board(board);
+    render_board(board);                            // player's move shows immediately
     updateStatusBanner(data['status'], data['turn']);
+
+    if (data['ai_to_move']) {
+        const aiRes = await fetch(`/game/${game_id}/ai-move/`, { method: 'POST' });
+        const aiData = await aiRes.json();
+        board = aiData['board'];
+        render_board(board);                         // AI's move shows once it's computed
+        updateStatusBanner(aiData['status'], aiData['turn']);
+    }
 }
 
 
-function render_board(board){
-outer_div=document.querySelector('.chessboard') 
-outer_div.innerHTML = ''; // clear old squares first
 
-for(let i=0;i<8;i++){
- for(let j=0;j<8;j++){
- cl_name=((i+j)%2==0)?'square light':'square dark' 
- div=document.createElement('div')
- div.setAttribute('data-row',i)
- div.setAttribute('data-col',j)
- div.setAttribute('draggable','true')
-
- div.innerText=board[i][j]??''
- div.className=cl_name
- 
- outer_div.appendChild(div)
+function clearHighlights() {
+  document.querySelectorAll('.legal').forEach(sq => sq.classList.remove('legal'));
 }
-}
-const squares=document.querySelectorAll('.square')
-squares.forEach(square=>{
 
-square.addEventListener('dragstart', (event) => {
-  pos_r = Number(event.target.dataset.row);
-  pos_c = Number(event.target.dataset.col);
-});
+function render_board(board) {
+  const outer_div = document.querySelector('.chessboard');
+  outer_div.innerHTML = '';
 
-square.addEventListener('dragover', (event) => {
-  event.preventDefault(); // required, or 'drop' will never fire
-});
-
-square.addEventListener('drop', async (event) => {
-  if (pos_r === null || pos_c === null) { return; }
-  t_r = Number(event.target.dataset.row);
-  t_c = Number(event.target.dataset.col);
-  if (t_r === pos_r && t_c === pos_c) { return; }
-
-  const pos_sq = unparse_move(pos_r, pos_c);
-  const t_sq = unparse_move(t_r, t_c);
-
-  let promotion = null;
-  if ( isPromotionMove(pos_r,pos_c, t_r,t_c)) {
-    promotion = await askPromotionChoice();
+  for (let i = 0; i < 8; i++) {
+    for (let j = 0; j < 8; j++) {
+      const div = document.createElement('div');
+      div.className = (i + j) % 2 === 0 ? 'square light' : 'square dark';
+      div.dataset.row = i;
+      div.dataset.col = j;
+      div.innerText = board[i][j] ?? '';
+      div.draggable = !!board[i][j];   // only pieces can be dragged
+      outer_div.appendChild(div);
+    }
   }
 
-  makemove(pos_sq, t_sq, promotion);
-});
-});
+  document.querySelectorAll('.square').forEach(square => {
+
+    square.addEventListener('dragstart', async (event) => {
+      pos_r = Number(event.currentTarget.dataset.row);
+      pos_c = Number(event.currentTarget.dataset.col);
+
+      const res = await fetch(`/game/${game_id}/renderlegal?row=${pos_r}&col=${pos_c}`);
+      const data = await res.json();   // assumed: [[r, c], [r, c], ...]
+     console.log('legal moves response:', data);   // <-- check this in the console
+      // ignore stale response if the drag already ended or changed
+      if (pos_r === null) return;
+
+      data.moves.forEach(([r, c]) => {
+        const target = document.querySelector(`[data-row="${r}"][data-col="${c}"]`);
+          console.log(r, c, target);   // <-- see if target is found
+
+        if (target) {target.classList.add('legal');    console.log(target.outerHTML);   // <-- shows the class list at the moment it's added
+}
+      });
+    });
+
+    square.addEventListener('dragover', (event) => {
+      event.preventDefault();   // required, or 'drop' never fires
+    });
+
+    square.addEventListener('drop', async (event) => {
+      event.preventDefault();
+      if (pos_r === null || pos_c === null) return;
+
+      const target = event.currentTarget;
+      const t_r = Number(target.dataset.row);
+      const t_c = Number(target.dataset.col);
+      const isLegal = target.classList.contains('legal');
+
+      clearHighlights();
+      if (!isLegal || (t_r === pos_r && t_c === pos_c)) return;
+
+      const pos_sq = unparse_move(pos_r, pos_c);
+      const t_sq = unparse_move(t_r, t_c);
+
+      let promotion = null;
+      if (isPromotionMove(pos_r, pos_c, t_r, t_c)) {
+        promotion = await askPromotionChoice();
+      }
+
+      makemove(pos_sq, t_sq, promotion);
+    });
+
+    square.addEventListener('dragend', () => {
+      clearHighlights();   // covers drops outside the board or on illegal squares
+      pos_r = pos_c = null;
+    });
+  });
 }
 
 
