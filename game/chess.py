@@ -5,7 +5,6 @@ from multiprocessing import Pool
 import time
 import random
 import numpy as np
-import torch
 #from game.NN import neuralnet
 
 
@@ -1584,7 +1583,7 @@ def simulate_game():
 
 
 
-def run_game(game_number):
+"""def run_game(game_number):
     return simulate_game()
 
 if __name__ == "__main__":
@@ -1604,7 +1603,7 @@ if __name__ == "__main__":
 
                 f.flush()
 
-                print("Finished:", game_number)
+                print("Finished:", game_number)"""
 """n_games=100
 for game_idx in range(n_games):
     examples = simulate_game()
