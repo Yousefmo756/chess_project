@@ -30,10 +30,8 @@ SECRET_KEY = config('SECRET_KEY')
 if not SECRET_KEY:
  raise Exception("SECRET_KEY environment variable is not set")
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = []
-
+DEBUG = config('DEBUG', default=False, cast=bool)
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='', cast=lambda v: [s.strip() for s in v.split(',')] if v else [])
 
 # Application definition
 
