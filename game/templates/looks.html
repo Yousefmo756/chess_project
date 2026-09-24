@@ -24,7 +24,8 @@
     padding: 24px 32px;
     border-radius: 10px;
     text-align: center;
-    color: #eee;
+    color: #eee;    max-width: 90vw;
+
 }
 
 .setup-row {
@@ -97,7 +98,7 @@
 .ranks {
     display: grid;
     grid-template-rows: repeat(8, 1fr);
-    height: 640px;
+  height: min(90vw, 640px);
     width: 24px;
 }
 
@@ -112,7 +113,7 @@
 .files {
     display: grid;
     grid-template-columns: 24px repeat(8, 1fr);
-    width: 664px;
+    width: calc(24px + min(90vw, 640px));
 }
 
 .files span {
@@ -136,8 +137,8 @@ body {
 }
 
 .chessboard {
-    width: 640px;
-    height: 640px;
+    width: min(90vw, 640px);
+    height: min(90vw, 640px);
     display: grid;
     grid-template-columns: repeat(8, 1fr);
     grid-template-rows: repeat(8, 1fr);
@@ -148,7 +149,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 55px;
+    font-size: min(7vw, 55px);
     cursor: pointer;
     user-select: none;
     transition: background-color 0.15s ease;
